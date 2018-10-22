@@ -209,12 +209,6 @@ namespace MeshAlgorithm
 		}
 	}
 
-	void MeshCutAlgorithm::CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
-	{
-		assert(pHalfedgeMeshWrapper != nullptr);
-		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
-	}
-
 	void MeshCutAlgorithm::FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
 	{
 		GEO::Attribute<bool> AttriIsCornerMarked(pHalfedgeMeshWrapper->pMesh->facet_corners.attributes(), "IsCornerMarked");
@@ -329,6 +323,17 @@ namespace MeshAlgorithm
 
 				m_CuttingEdgePointsIdx.insert(m_CuttingEdgePointsIdx.end(), { iOrigin, iDest });
 			}
+		}
+	}
+
+	void MeshCutAlgorithm::CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
+	{
+		assert(pHalfedgeMeshWrapper != nullptr);
+		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
+
+		for (GEO::index_t i = 0; i < m_NotMarkedCornersIdx.size(); i++)
+		{
+			GEO::index_t iCorner = m_NotMarkedCornersIdx[i];
 		}
 	}
 }

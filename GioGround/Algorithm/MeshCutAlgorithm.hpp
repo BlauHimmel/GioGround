@@ -27,11 +27,12 @@ namespace MeshAlgorithm
 
 	private:
 		void MarkMeshByBFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
-		void CutBranchEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
-		
-		void CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
-		void FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 
+		void CutBranchEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+		void FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+		
 		void ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh);
+
+		void CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 	};
 }
