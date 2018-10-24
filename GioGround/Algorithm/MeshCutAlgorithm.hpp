@@ -11,8 +11,7 @@ namespace MeshAlgorithm
 		GEO::index_t m_StartFacet = GEO::NO_FACET;
 		GEO::vector<GEO::index_t> m_NotMarkedCornersIdx;
 
-		GEO::vector<float> m_CuttingEdgePointsF;
-		GEO::vector<double> m_CuttingEdgePointsD;
+		GEO::vector<double> m_CuttingEdgePoints;
 		GEO::vector<GEO::index_t> m_CuttingEdgePointsIdx;
 
 	public:
@@ -24,6 +23,7 @@ namespace MeshAlgorithm
 
 	protected:
 		virtual bool CheckAndGetArgs(In GEO::Mesh * const pMesh) override;
+		virtual bool Reset() override;
 
 	private:
 		// Step1

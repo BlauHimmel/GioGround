@@ -20,6 +20,11 @@ namespace MeshAlgorithm
 			return false;
 		}
 
+		if (!Reset())
+		{
+			return false;
+		}
+
 		if (!CheckAndGetArgs(pMesh))
 		{
 			return false;
@@ -77,9 +82,9 @@ namespace MeshAlgorithm
 		glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, EdgeColor.data());
 		glupBegin(GLUP_LINES);
 
-		for (GEO::index_t iElement = 0; iElement < m_CuttingEdgePointsD.size(); iElement += 3)
+		for (GEO::index_t iElement = 0; iElement < m_CuttingEdgePoints.size(); iElement += 3)
 		{
-			glupVertex3d(m_CuttingEdgePointsD[iElement + 0], m_CuttingEdgePointsD[iElement + 1], m_CuttingEdgePointsD[iElement + 2]);
+			glupVertex3d(m_CuttingEdgePoints[iElement + 0], m_CuttingEdgePoints[iElement + 1], m_CuttingEdgePoints[iElement + 2]);
 		}
 
 		glupEnd();
@@ -104,6 +109,17 @@ namespace MeshAlgorithm
 		return true;
 	}
 
+	bool MeshCutAlgorithm::Reset()
+	{
+		m_StartFacet = GEO::NO_FACET;
+		m_NotMarkedCornersIdx.clear();
+
+		m_CuttingEdgePoints.clear();
+		m_CuttingEdgePointsIdx.clear();
+
+		return true;
+	}
+
 	void MeshCutAlgorithm::MarkMeshByBFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
 	{
 		assert(m_StartFacet != GEO::NO_FACET);
@@ -114,7 +130,6 @@ namespace MeshAlgorithm
 
 		GEO::Attribute<bool> AttriIsFacetVisited;
 		GEO::Attribute<bool> AttriIsCornerMarked;
-		GEO::Attribute<bool> AttriIsEdgeMarked;
 
 		AttriIsFacetVisited.bind(pMesh->facets.attributes(), "IsFacetVisited");
 		AttriIsCornerMarked.bind(pMesh->facet_corners.attributes(), "IsCornerMarked");
@@ -122,7 +137,7 @@ namespace MeshAlgorithm
 		AttriIsFacetVisited.fill(false);
 		AttriIsCornerMarked.fill(false);
 
-		std::queue<GEO::index_t> Queue;
+		std::queue<GEO::index_t/*iFacet*/> Queue;
 		Queue.push(m_StartFacet);
 
 		while (!Queue.empty())
@@ -151,8 +166,6 @@ namespace MeshAlgorithm
 				Queue.push(iAdjFacet);
 			}
 		}
-
-		AttriIsFacetVisited.unbind();
 
 		for (GEO::index_t iCorner = 0; iCorner < pMesh->facet_corners.nb(); iCorner++)
 		{
@@ -235,17 +248,29 @@ namespace MeshAlgorithm
 				} while (nOutDegree == 1 && !bIsBoundary);
 			}
 		}
+
+		/*Update the m_NotMarkedCornersIdx after cutting branch*/
+		m_NotMarkedCornersIdx.clear();
+		for (GEO::index_t iCorner = 0; iCorner < pMesh->facet_corners.nb(); iCorner++)
+		{
+			if (!AttriIsCornerMarked[iCorner])
+			{
+				m_NotMarkedCornersIdx.push_back(iCorner);
+			}
+		}
 	}
 
 	void MeshCutAlgorithm::FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
 	{
-		GEO::Attribute<bool> AttriIsCornerMarked(pHalfedgeMeshWrapper->pMesh->facet_corners.attributes(), "IsCornerMarked");
+		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
+
+		GEO::Attribute<bool> AttriIsCornerMarked(pMesh->facet_corners.attributes(), "IsCornerMarked");
 		std::unordered_set<GEO::index_t> CuttingCornerIdx;
 
 		for (GEO::index_t i = 0; i < m_NotMarkedCornersIdx.size(); i++)
 		{
 			std::list<GEO::index_t/*iCorner*/> Stack;
-			std::vector<bool> CornerFlag(pHalfedgeMeshWrapper->pMesh->facet_corners.nb(), false);
+			std::vector<bool> CornerFlag(pMesh->facet_corners.nb(), false);
 
 			GEO::index_t iCorner = m_NotMarkedCornersIdx[i];
 			Stack.push_front(iCorner);
@@ -314,6 +339,38 @@ namespace MeshAlgorithm
 				AttriIsCornerMarked[iCorner] = true;
 			}
 		}
+
+		/*Update the m_NotMarkedCornersIdx after cutting branch*/
+		m_NotMarkedCornersIdx.clear();
+		for (GEO::index_t iCorner = 0; iCorner < pMesh->facet_corners.nb(); iCorner++)
+		{
+			if (!AttriIsCornerMarked[iCorner])
+			{
+				m_NotMarkedCornersIdx.push_back(iCorner);
+			}
+		}
+	}
+
+	void MeshCutAlgorithm::CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
+	{
+		assert(pHalfedgeMeshWrapper != nullptr);
+		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
+
+		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
+
+		GEO::Attribute<bool> AttriIsCornerMarked(pMesh->facet_corners.attributes(), "IsCornerMarked");
+
+		for (GEO::index_t i = 0; i < m_NotMarkedCornersIdx.size(); i++)
+		{
+			GEO::index_t iBeginCorner = m_NotMarkedCornersIdx[i];
+
+			if (AttriIsCornerMarked[iBeginCorner])
+			{
+				continue;
+			}
+
+
+		}
 	}
 
 	void MeshCutAlgorithm::ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh)
@@ -346,22 +403,11 @@ namespace MeshAlgorithm
 				GEO::vec3 vOrigin = CopyMesh.vertices.point(iOrigin);
 				GEO::vec3 vDest = CopyMesh.vertices.point(iDest);
 
-				m_CuttingEdgePointsD.insert(m_CuttingEdgePointsD.end(), { vOrigin[0], vOrigin[1], vOrigin[2] });
-				m_CuttingEdgePointsD.insert(m_CuttingEdgePointsD.end(), { vDest[0], vDest[1], vDest[2] });
+				m_CuttingEdgePoints.insert(m_CuttingEdgePoints.end(), { vOrigin[0], vOrigin[1], vOrigin[2] });
+				m_CuttingEdgePoints.insert(m_CuttingEdgePoints.end(), { vDest[0], vDest[1], vDest[2] });
 
 				m_CuttingEdgePointsIdx.insert(m_CuttingEdgePointsIdx.end(), { iOrigin, iDest });
 			}
-		}
-	}
-
-	void MeshCutAlgorithm::CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
-	{
-		assert(pHalfedgeMeshWrapper != nullptr);
-		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
-
-		for (GEO::index_t i = 0; i < m_NotMarkedCornersIdx.size(); i++)
-		{
-			GEO::index_t iCorner = m_NotMarkedCornersIdx[i];
 		}
 	}
 }

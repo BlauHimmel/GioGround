@@ -142,7 +142,7 @@ void GioApplication::draw_scene()
 void GioApplication::init_graphics()
 {
 	GEO::SimpleMeshApplication::init_graphics();
-	GEO::set_assert_mode(GEO::ASSERT_THROW);
+	GEO::set_assert_mode(GEO::ASSERT_BREAKPOINT);
 	glup_viewer_set_mouse_func(MouseCallbackFunc);
 	MeshGenerator::MeshGenHexagon(&mesh_);
 	mesh_gfx_.set_mesh(&mesh_);

@@ -9,7 +9,7 @@ TEST(IMeshAlgorithm, Function_Execute)
 	GEO::Mesh Mesh, OutMesh;
 	MeshAlgorithm::IMeshAlgorithm IAlgorithm;
 	ASSERT_TRUE(IAlgorithm.Execute(&Mesh));
-	ASSERT_TRUE(IAlgorithm.Execute(&Mesh, &OutMesh));
+	ASSERT_TRUE(IAlgorithm.ExecuteOut(&Mesh, &OutMesh));
 }
 
 TEST(IMeshAlgorithm, Function_PutArg_SetArg)

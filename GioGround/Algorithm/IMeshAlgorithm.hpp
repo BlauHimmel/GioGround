@@ -22,11 +22,12 @@ namespace MeshAlgorithm
 	public:
 		virtual ~IMeshAlgorithm();
 		virtual bool Execute(InOut GEO::Mesh * pMesh);
-		bool Execute(In GEO::Mesh * pMesh, Out GEO::Mesh * pOutMesh);
+		bool ExecuteOut(In GEO::Mesh * pMesh, Out GEO::Mesh * pOutMesh);
 
 		virtual bool Visualize(In GEO::Mesh * const pMesh) const;
 
 	protected:
+		virtual bool Reset();
 		virtual bool CheckAndGetArgs(In GEO::Mesh * pMesh);
 
 	public:
