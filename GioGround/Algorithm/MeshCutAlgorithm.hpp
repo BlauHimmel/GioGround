@@ -26,13 +26,18 @@ namespace MeshAlgorithm
 		virtual bool CheckAndGetArgs(In GEO::Mesh * const pMesh) override;
 
 	private:
+		// Step1
 		void MarkMeshByBFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 
+		// Step2
 		void CutBranchEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+		[[deprecated("This function has been deprecated for the reason of efficiency")]]
 		void FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 		
-		void ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh);
-
+		// Step3
 		void CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+
+		// Computing data that are used for visualization
+		void ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh);
 	};
 }

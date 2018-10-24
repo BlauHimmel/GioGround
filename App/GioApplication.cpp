@@ -311,8 +311,6 @@ void GioApplication::DrawAlgorithmDialog()
 
 void GioApplication::CloseAlgorithmDialog()
 {
-	m_bSelectingFacet = false;
-	m_iSelectedFacet = GEO::NO_FACET;
 	CloseMeshCutAlgorithmDialog();
 }
 
@@ -327,8 +325,11 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 		ImGui::Begin("Cut Mesh", &m_bShowMeshCutAlgorithmDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
-
+		ImGui::Text("This algorithm should select a start facet:");
 		ImGui::Checkbox("Select Start Facet", &m_bSelectingFacet);
+		ImGui::SameLine();
+		ImGui::Text("Selected: %d", m_iSelectedFacet == GEO::NO_FACET ? 0 : m_iSelectedFacet);
+
 		if (!m_bSelectingFacet)
 		{
 			m_iSelectedFacet = GEO::NO_FACET;
@@ -344,6 +345,7 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 		if (m_bRunAlgorithm)
 		{
+			ImGui::SameLine();
 			ImGui::Checkbox("Visualize", &m_bVisualizeAlgorithm);
 		}
 
@@ -354,6 +356,8 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 		m_MeshAlgorithm.release();
 		m_bRunAlgorithm = false;
 		m_bVisualizeAlgorithm = false;
+		m_bSelectingFacet = false;
+		m_iSelectedFacet = GEO::NO_FACET;
 	}
 }
 
@@ -364,6 +368,9 @@ void GioApplication::CloseMeshCutAlgorithmDialog()
 		m_MeshAlgorithm.release();
 		m_bRunAlgorithm = false;
 		m_bVisualizeAlgorithm = false;
+		m_bSelectingFacet = false;
+		m_iSelectedFacet = GEO::NO_FACET;
+
 		m_bShowMeshCutAlgorithmDialog = false;
 	}
 }
