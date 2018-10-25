@@ -371,26 +371,96 @@ namespace MeshAlgorithm
 			
 			GEO::index_t iCorner = iBeginCorner;
 			GEO::index_t iNewVertex = pMesh->vertices.create_vertex();
-			
-			//pMesh->vertices.point_ptr(iNewVertex)[0];
+			GEO::index_t iOldVertex = pMesh->facet_corners.vertex(iCorner);
+			GEO::index_t iCuttingCorner = iBeginCorner;
 
-			pMesh->facet_corners.vertex(iCorner);
+			double * pOldVertex = pMesh->vertices.point_ptr(iOldVertex);
+			double * pNewVertex = pMesh->vertices.point_ptr(iNewVertex);
+
+			pNewVertex[0] = pOldVertex[0];
+			pNewVertex[1] = pOldVertex[1];
+			pNewVertex[2] = pOldVertex[2];
+
+			bool bIsCirculateEnd = false;
+
+			///
+			int nNewVertex = 1;
+			int nCirculateStep = 0;
+			///
+
 			do
 			{
-				/*TODO*/
-				iCorner = pHalfedgeMeshWrapper->NextAroundVertex(iCorner);
-			} while (iCorner != GEO::NO_CORNER && iCorner != iBeginCorner);
+				GEO::index_t iFacet = pHalfedgeMeshWrapper->Facet(iCorner);
+				
+				///
+				auto nV = pMesh->facets.nb_vertices(iFacet);
+				auto iV1 = pMesh->facets.vertex(iFacet, 0);
+				auto iV2 = pMesh->facets.vertex(iFacet, 1);
+				auto iV3 = pMesh->facets.vertex(iFacet, 2);
+				nCirculateStep++;
+				///
 
-			if (iCorner == GEO::NO_CORNER)
+				GEO::index_t iLocalVertex = pMesh->facets.find_vertex(iFacet, iOldVertex);
+				pMesh->facets.set_vertex(iFacet, iLocalVertex, iNewVertex);
+
+				iCorner = pHalfedgeMeshWrapper->NextAroundVertex(iCorner);
+
+				bIsCirculateEnd = (iCorner == GEO::NO_CORNER || iCorner == iBeginCorner);
+
+				if (!bIsCirculateEnd && !AttriIsCornerMarked[iCorner])
+				{
+					iNewVertex = pMesh->vertices.create_vertex();
+					pNewVertex = pMesh->vertices.point_ptr(iNewVertex);
+
+					pNewVertex[0] = pOldVertex[0];
+					pNewVertex[1] = pOldVertex[1];
+					pNewVertex[2] = pOldVertex[2];
+
+					AttriIsCornerMarked[iCuttingCorner] = true;
+
+					iCuttingCorner = iCorner;
+
+					///
+					nNewVertex++;
+					///
+				}
+
+				/*Change the tag of last cutting edge when circulation was finished.*/
+				if (bIsCirculateEnd)
+				{
+					AttriIsCornerMarked[iCuttingCorner] = true;
+				}
+
+			} while (!bIsCirculateEnd);
+
+			if (iCorner == GEO::NO_CORNER && pHalfedgeMeshWrapper->Opposite(iBeginCorner) != GEO::NO_CORNER)
 			{
+				iCorner = pHalfedgeMeshWrapper->Corner2Corner[iBeginCorner];
+
 				do 
 				{
-					/*TODO*/
+					GEO::index_t iFacet = pHalfedgeMeshWrapper->Facet(iCorner);
+					GEO::index_t iLocalVertex = pMesh->facets.find_vertex(iFacet, iOldVertex);
+					pMesh->facets.set_vertex(iFacet, iLocalVertex, iNewVertex);
+
+					if (!AttriIsCornerMarked[iCorner])
+					{
+						iNewVertex = pMesh->vertices.create_vertex();
+						pNewVertex = pMesh->vertices.point_ptr(iNewVertex);
+
+						pNewVertex[0] = pOldVertex[0];
+						pNewVertex[1] = pOldVertex[1];
+						pNewVertex[2] = pOldVertex[2];
+
+						AttriIsCornerMarked[iCorner] = true;
+					}
+
 					iCorner = pHalfedgeMeshWrapper->Corner2Corner[iCorner];
 				} while (iCorner != GEO::NO_CORNER);
 			}
-			
 		}
+
+		pMesh->vertices.remove_isolated();
 	}
 
 	void MeshCutAlgorithm::ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh)
