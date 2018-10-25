@@ -368,8 +368,28 @@ namespace MeshAlgorithm
 			{
 				continue;
 			}
+			
+			GEO::index_t iCorner = iBeginCorner;
+			GEO::index_t iNewVertex = pMesh->vertices.create_vertex();
+			
+			//pMesh->vertices.point_ptr(iNewVertex)[0];
 
+			pMesh->facet_corners.vertex(iCorner);
+			do
+			{
+				/*TODO*/
+				iCorner = pHalfedgeMeshWrapper->NextAroundVertex(iCorner);
+			} while (iCorner != GEO::NO_CORNER && iCorner != iBeginCorner);
 
+			if (iCorner == GEO::NO_CORNER)
+			{
+				do 
+				{
+					/*TODO*/
+					iCorner = pHalfedgeMeshWrapper->Corner2Corner[iCorner];
+				} while (iCorner != GEO::NO_CORNER);
+			}
+			
 		}
 	}
 
