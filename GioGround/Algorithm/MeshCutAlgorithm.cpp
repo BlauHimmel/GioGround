@@ -32,45 +32,51 @@ namespace MeshAlgorithm
 
 		TIMER_START(TimeTotal);
 
-		GEO::Logger::out("MeshCutAlgorithm") << "Create Halfedge data structure...";
+		GEO::Logger::out("Mesh Cut") << "Create Halfedge data structure...";
 		TIMER_START(TimeCreateHalfedge);
 		HalfedgeMeshWrapper Wrapper(pMesh);
 		TIMER_END(TimeCreateHalfedge);
-		GEO::Logger::out("MeshCutAlgorithm") << "(" << TimeCreateHalfedge << " sec)" << std::endl;
+		GEO::Logger::out("Mesh Cut") << "(" << TimeCreateHalfedge << " sec)" << std::endl;
 
-		GEO::Logger::out("MeshCutAlgorithm") << "Marking facets of mesh using BFS...";
+		GEO::Logger::out("Mesh Cut") << "Marking facets of mesh using BFS...";
 		TIMER_START(TimeMarkMeshByBFS);
 		MarkMeshByBFS(&Wrapper);
 		TIMER_END(TimeMarkMeshByBFS);
-		GEO::Logger::out("MeshCutAlgorithm") << "(" << TimeMarkMeshByBFS << " sec)" << std::endl;
+		GEO::Logger::out("Mesh Cut") << "(" << TimeMarkMeshByBFS << " sec)" << std::endl;
 
-		GEO::Logger::out("MeshCutAlgorithm") << "Cutting branch of unmarked corners...";
+		GEO::Logger::out("Mesh Cut") << "Cutting branch of unmarked corners...";
 		TIMER_START(TimeCutBranchEdge);
 		CutBranchEdge(&Wrapper);
 		TIMER_END(TimeCutBranchEdge);
-		GEO::Logger::out("MeshCutAlgorithm") << "(" << TimeCutBranchEdge << " sec)" << std::endl;
+		GEO::Logger::out("Mesh Cut") << "(" << TimeCutBranchEdge << " sec)" << std::endl;
 
-		GEO::Logger::out("MeshCutAlgorithm") << "Computing the points of cutting edge used for visualization...";
+		GEO::Logger::out("Mesh Cut") << "Connecting boundaries of mesh...";
+		TIMER_START(TimeConnectBoundary);
+		ConnectBoundary(&Wrapper);
+		TIMER_END(TimeConnectBoundary);
+		GEO::Logger::out("Mesh Cut") << "(" << TimeConnectBoundary << " sec)" << std::endl;
+
+		GEO::Logger::out("Mesh Cut") << "Computing the points of cutting edge used for visualization...";
 		TIMER_START(TimeComputeCuttingEdgePoints);
 		ComputeCuttingEdgePoints(pMesh);
 		TIMER_END(TimeComputeCuttingEdgePoints);
-		GEO::Logger::out("MeshCutAlgorithm") << "(" << TimeComputeCuttingEdgePoints << " sec)" << std::endl;
+		GEO::Logger::out("Mesh Cut") << "(" << TimeComputeCuttingEdgePoints << " sec)" << std::endl;
 
-		GEO::Logger::out("MeshCutAlgorithm") << "Cutting mesh by left edges...";
+		GEO::Logger::out("Mesh Cut") << "Cutting mesh by left edges...";
 		TIMER_START(TimeCutMeshByEdge);
 		CutMeshByEdge(&Wrapper);
 		TIMER_END(TimeCutMeshByEdge);
-		GEO::Logger::out("MeshCutAlgorithm") << "(" << TimeCutMeshByEdge << " sec)" << std::endl;
+		GEO::Logger::out("Mesh Cut") << "(" << TimeCutMeshByEdge << " sec)" << std::endl;
 
-		GEO::Logger::out("MeshCutAlgorithm") << "Clearing attributes...";
+		GEO::Logger::out("Mesh Cut") << "Clearing attributes...";
 		TIMER_START(TimeClearAttribute);
 		ClearAttribute(pMesh);
 		TIMER_END(TimeClearAttribute);
-		GEO::Logger::out("MeshCutAlgorithm") << "(" << TimeClearAttribute << " sec)" << std::endl;
+		GEO::Logger::out("Mesh Cut") << "(" << TimeClearAttribute << " sec)" << std::endl;
 
 		TIMER_END(TimeTotal);
 
-		GEO::Logger::out("MeshCutAlgorithm") << "Cut mesh finished! (Total : " << TimeTotal << " sec)" << std::endl;
+		GEO::Logger::out("Mesh Cut") << "Cut mesh finished! (Total : " << TimeTotal << " sec)" << std::endl;
 		return true;
 	}
 
@@ -341,6 +347,212 @@ namespace MeshAlgorithm
 		}
 	}
 
+	void MeshCutAlgorithm::ConnectBoundary(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
+	{
+		assert(pHalfedgeMeshWrapper != nullptr);
+		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
+
+		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
+
+		GEO::Attribute<GEO::index_t> AttriBoundaryIndex;
+		AttriBoundaryIndex.bind(pMesh->facet_corners.attributes(), "BoundaryIndex");
+		AttriBoundaryIndex.fill(GEO::index_t(-1));
+
+		GEO::Attribute<bool> AttriIsCornerMarked(pMesh->facet_corners.attributes(), "IsCornerMarked");
+
+		/*Update the m_NotMarkedCornersIdx after cutting branch*/
+		m_NotMarkedCornersIdx.clear();
+		for (GEO::index_t iCorner = 0; iCorner < pMesh->facet_corners.nb(); iCorner++)
+		{
+			if (!AttriIsCornerMarked[iCorner])
+			{
+				m_NotMarkedCornersIdx.push_back(iCorner);
+			}
+		}
+
+		GEO::vector<GEO::vector<GEO::index_t>> BoundariesCorners;
+		BoundariesCorners.push_back(GEO::vector<GEO::index_t>());
+
+		/*Index the boundary, 0 for we generated, others for the original boundaries*/
+		GEO::index_t iBoundary = 1;
+		for (GEO::index_t i = 0; i < m_NotMarkedCornersIdx.size(); i++)
+		{
+			GEO::index_t iCorner = m_NotMarkedCornersIdx[i];
+			GEO::index_t iOppositeIndex = pHalfedgeMeshWrapper->Opposite(iCorner);
+			if (iOppositeIndex != GEO::NO_CORNER)
+			{
+				AttriBoundaryIndex[iCorner] = 0;
+				AttriBoundaryIndex[iOppositeIndex] = 0;
+				continue;
+			}
+
+			if (AttriBoundaryIndex[iCorner] != GEO::index_t(-1))
+			{
+				continue;
+			}
+
+			GEO::vector<GEO::index_t> BoundaryCorners;
+
+			do 
+			{
+				AttriBoundaryIndex[iCorner] = iBoundary;
+				BoundaryCorners.push_back(iCorner);
+
+				GEO::index_t iNextCorner = pHalfedgeMeshWrapper->Next(iCorner);
+				iCorner = iNextCorner;
+				while (AttriIsCornerMarked[iCorner])
+				{
+					iCorner = pHalfedgeMeshWrapper->Corner2Corner[iCorner];
+				}
+
+			} while (AttriBoundaryIndex[iCorner] == GEO::index_t(-1));
+
+			BoundariesCorners.push_back(BoundaryCorners);
+			iBoundary++;
+		}
+
+		/*Find the shortest path by BFS*/
+		for (GEO::index_t i = 1; i < BoundariesCorners.size(); i++)
+		{
+			std::queue<GEO::index_t/*iFacet*/> Queue;
+			GEO::Attribute<GEO::index_t> AttriFacetDistance;
+			AttriFacetDistance.bind(pMesh->facets.attributes(), "FacetDistance");
+			AttriFacetDistance.fill(GEO::index_t(-1));
+			GEO::index_t Distance = 1;
+
+			for (GEO::index_t j = 0; j < BoundariesCorners[i].size(); j++)
+			{
+				GEO::index_t iFacet = pHalfedgeMeshWrapper->Facet(BoundariesCorners[i][j]);
+				AttriFacetDistance[iFacet] = Distance;
+				Queue.push(iFacet);
+			}
+
+			Queue.push(GEO::index_t(-1));
+
+			GEO::index_t iFoundFacet = GEO::NO_FACET;
+			GEO::index_t NearDistance = GEO::index_t(-1);
+
+			while (!Queue.empty())
+			{
+				GEO::index_t iFacet = Queue.front();
+				Queue.pop();
+				if (iFacet == GEO::index_t(-1) && !Queue.empty())
+				{
+					Distance++;
+					Queue.push(GEO::index_t(-1));
+					continue;
+				}
+
+				for (GEO::index_t j = 0; j < pMesh->facets.nb_vertices(iFacet); j++)
+				{
+					GEO::index_t iCorner = pMesh->facets.corner(iFacet, j);
+					if (AttriBoundaryIndex[iCorner] == 0)
+					{
+						iFoundFacet = iFacet;
+						NearDistance = Distance;
+						goto JumpOut; // =====> GOTO
+					}
+				}
+
+				for (GEO::index_t j = 0; j < pMesh->facets.nb_vertices(iFacet); j++)
+				{
+					GEO::index_t iAdjFacet = pMesh->facets.adjacent(iFacet, j);
+					if (iAdjFacet != GEO::NO_FACET && AttriFacetDistance[iAdjFacet] == GEO::index_t(-1))
+					{
+						Queue.push(iAdjFacet);
+						AttriFacetDistance[iAdjFacet] = Distance + 1;
+					}
+				}
+			}
+
+			JumpOut: // <===== GOTO
+
+			GEO::index_t iFacet = iFoundFacet;
+			GEO::index_t CurrentDistance = NearDistance;
+
+			GEO::vector<GEO::index_t> CornerPath;
+
+			/*Trace back to connect the boundary*/
+			do 
+			{
+				for (GEO::index_t j = 0; j < pMesh->facets.nb_vertices(iFacet); j++)
+				{
+					GEO::index_t iAdjFacet = pMesh->facets.adjacent(iFacet, j);
+
+					if (AttriFacetDistance[iAdjFacet] == CurrentDistance - 1)
+					{
+						GEO::index_t iCorner = pMesh->facets.corner(iFacet, j);
+						GEO::index_t iOppositeCorner = pHalfedgeMeshWrapper->Opposite(iCorner);
+
+						AttriIsCornerMarked[iCorner] = false;
+						AttriIsCornerMarked[iOppositeCorner] = false;
+
+						CornerPath.insert(CornerPath.end(), { iCorner, iOppositeCorner });
+						
+						iFacet = iAdjFacet;
+						CurrentDistance--;
+
+						break;
+					}
+				}
+			} while (AttriFacetDistance[iFacet] != 1);
+
+			for (GEO::index_t j = 0; j < CornerPath.size(); j++)
+			{
+				GEO::index_t iBeginCorner = CornerPath[j];
+				GEO::index_t iOppositeCorner = (j % 2 == 0) ? CornerPath[j + 1] : CornerPath[j - 1];
+				GEO::index_t iCorner = iBeginCorner;
+
+				if (AttriIsCornerMarked[iBeginCorner] || AttriIsCornerMarked[iOppositeCorner])
+				{
+					continue;
+				}
+
+				GEO::index_t nOutDegree = 0;
+
+				do
+				{
+					if (!AttriIsCornerMarked[iCorner])
+					{
+						nOutDegree++;
+						if (nOutDegree > 1)
+						{
+							break;
+						}
+					}
+					iCorner = pHalfedgeMeshWrapper->Corner2Corner[iCorner];
+				} while (iCorner != iBeginCorner);
+
+				if (nOutDegree == 1)
+				{
+					AttriIsCornerMarked[iBeginCorner] = true;
+					AttriIsCornerMarked[iOppositeCorner] = true;
+				}
+
+				GEO::index_t iFacet = pHalfedgeMeshWrapper->Facet(iBeginCorner);
+				bool bIsAllEdgeMarked = true;
+
+				for (GEO::index_t k = 0; k < pMesh->facets.nb_corners(iFacet); k++)
+				{
+					if (AttriIsCornerMarked[pMesh->facets.corner(iFacet, k)])
+					{
+						bIsAllEdgeMarked = false;
+						break;
+					}
+				}
+
+				if (bIsAllEdgeMarked)
+				{
+					AttriIsCornerMarked[iBeginCorner] = true;
+					AttriIsCornerMarked[iOppositeCorner] = true;
+				}
+			}
+
+			AttriFacetDistance.unbind();
+			pMesh->facets.attributes().delete_attribute_store("FacetDistance");
+		}
+	}
+
 	void MeshCutAlgorithm::ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh)
 	{
 		GEO::Mesh CopyMesh;
@@ -348,6 +560,16 @@ namespace MeshAlgorithm
 
 		HalfedgeMeshWrapper Wrapper(&CopyMesh);
 		GEO::Attribute<bool> AttriIsCornerMarked(CopyMesh.facet_corners.attributes(), "IsCornerMarked");
+
+		/*Update the m_NotMarkedCornersIdx after cutting branch*/
+		m_NotMarkedCornersIdx.clear();
+		for (GEO::index_t iCorner = 0; iCorner < pMesh->facet_corners.nb(); iCorner++)
+		{
+			if (!AttriIsCornerMarked[iCorner])
+			{
+				m_NotMarkedCornersIdx.push_back(iCorner);
+			}
+		}
 
 		for (GEO::index_t i = 0; i < m_NotMarkedCornersIdx.size(); i++)
 		{

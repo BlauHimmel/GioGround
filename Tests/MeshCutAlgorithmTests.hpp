@@ -16,54 +16,14 @@ TEST(MeshCutAlgorithm, Function)
 	MeshCut->PutArg(MeshAlgorithm::MeshCutAlgorithm::PARAMS_KEY_START_FACET, StartFacet);
 	MeshCut->Execute(&Mesh);
 
-	GEO::Attribute<bool> AttriIsCornerMarked;
-	AttriIsCornerMarked.bind(Mesh.facet_corners.attributes(), "IsCornerMarked");
+	GEO::index_t nBoundary = 0;
+	for (GEO::index_t iCorner = 0; iCorner < Mesh.facet_corners.nb(); ++iCorner) 
+	{
+		if (Mesh.facet_corners.adjacent_facet(iCorner) == GEO::NO_FACET) 
+		{
+			nBoundary++;
+		}
+	}
 
-	ASSERT_TRUE(AttriIsCornerMarked[0]);
-	ASSERT_TRUE(AttriIsCornerMarked[1]);
-	ASSERT_TRUE(AttriIsCornerMarked[2]);
-	ASSERT_TRUE(AttriIsCornerMarked[3]);
-	ASSERT_FALSE(AttriIsCornerMarked[4]);
-	ASSERT_FALSE(AttriIsCornerMarked[5]);
-	ASSERT_TRUE(AttriIsCornerMarked[6]);
-	ASSERT_TRUE(AttriIsCornerMarked[7]);
-	ASSERT_TRUE(AttriIsCornerMarked[8]);
-	ASSERT_FALSE(AttriIsCornerMarked[9]);
-	ASSERT_TRUE(AttriIsCornerMarked[10]);
-	ASSERT_FALSE(AttriIsCornerMarked[11]);
-	ASSERT_FALSE(AttriIsCornerMarked[12]);
-	ASSERT_TRUE(AttriIsCornerMarked[13]);
-	ASSERT_TRUE(AttriIsCornerMarked[14]);
-	ASSERT_TRUE(AttriIsCornerMarked[15]);
-	ASSERT_FALSE(AttriIsCornerMarked[16]);
-	ASSERT_TRUE(AttriIsCornerMarked[17]);
-
-	AttriIsCornerMarked.unbind();
-
-	GEO::Mesh OutMesh;
-	StartFacet = 0;
-	MeshCut->PutArg(MeshAlgorithm::MeshCutAlgorithm::PARAMS_KEY_START_FACET, StartFacet);
-	MeshCut->ExecuteOut(&Mesh, &OutMesh);
-	AttriIsCornerMarked.bind(OutMesh.facet_corners.attributes(), "IsCornerMarked");
-
-	ASSERT_TRUE(AttriIsCornerMarked[0]);
-	ASSERT_TRUE(AttriIsCornerMarked[1]);
-	ASSERT_TRUE(AttriIsCornerMarked[2]);
-	ASSERT_TRUE(AttriIsCornerMarked[3]);
-	ASSERT_FALSE(AttriIsCornerMarked[4]);
-	ASSERT_FALSE(AttriIsCornerMarked[5]);
-	ASSERT_TRUE(AttriIsCornerMarked[6]);
-	ASSERT_TRUE(AttriIsCornerMarked[7]);
-	ASSERT_TRUE(AttriIsCornerMarked[8]);
-	ASSERT_FALSE(AttriIsCornerMarked[9]);
-	ASSERT_TRUE(AttriIsCornerMarked[10]);
-	ASSERT_FALSE(AttriIsCornerMarked[11]);
-	ASSERT_FALSE(AttriIsCornerMarked[12]);
-	ASSERT_TRUE(AttriIsCornerMarked[13]);
-	ASSERT_TRUE(AttriIsCornerMarked[14]);
-	ASSERT_TRUE(AttriIsCornerMarked[15]);
-	ASSERT_FALSE(AttriIsCornerMarked[16]);
-	ASSERT_TRUE(AttriIsCornerMarked[17]);
-
-	AttriIsCornerMarked.unbind();
+	ASSERT_EQ(nBoundary, 1);
 }

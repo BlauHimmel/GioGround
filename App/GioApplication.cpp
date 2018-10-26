@@ -144,9 +144,8 @@ void GioApplication::init_graphics()
 	GEO::SimpleMeshApplication::init_graphics();
 	GEO::set_assert_mode(GEO::ASSERT_BREAKPOINT);
 	glup_viewer_set_mouse_func(MouseCallbackFunc);
-	MeshGenerator::MeshGenHexagon(&mesh_);
-	mesh_gfx_.set_mesh(&mesh_);
-	m_MashFacetsAABB.reset(new GEO::MeshFacetsAABB(mesh_));
+	retina_mode_ = false;
+	scaling_ = 1.0f;
 }
 
 void GioApplication::draw_gui()
