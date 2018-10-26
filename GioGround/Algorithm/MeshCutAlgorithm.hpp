@@ -11,8 +11,7 @@ namespace MeshAlgorithm
 		GEO::index_t m_StartFacet = GEO::NO_FACET;
 		GEO::vector<GEO::index_t> m_NotMarkedCornersIdx;
 
-		GEO::vector<float> m_CuttingEdgePointsF;
-		GEO::vector<double> m_CuttingEdgePointsD;
+		GEO::vector<double> m_CuttingEdgePoints;
 		GEO::vector<GEO::index_t> m_CuttingEdgePointsIdx;
 
 	public:
@@ -24,15 +23,27 @@ namespace MeshAlgorithm
 
 	protected:
 		virtual bool CheckAndGetArgs(In GEO::Mesh * const pMesh) override;
+		virtual bool Reset() override;
 
 	private:
+		// Step1
 		void MarkMeshByBFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 
+		// Step2
 		void CutBranchEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+		[[deprecated("This function has been deprecated for the reason of efficiency")]]
 		void FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 		
+		// Step3
+		void ConnectBoundary(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+
+		// Step4
 		void ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh);
 
+		// Step5
 		void CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+
+		// Step6
+		void ClearAttribute(In GEO::Mesh * const pMesh);
 	};
 }

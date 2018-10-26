@@ -142,11 +142,10 @@ void GioApplication::draw_scene()
 void GioApplication::init_graphics()
 {
 	GEO::SimpleMeshApplication::init_graphics();
-	GEO::set_assert_mode(GEO::ASSERT_THROW);
+	GEO::set_assert_mode(GEO::ASSERT_BREAKPOINT);
 	glup_viewer_set_mouse_func(MouseCallbackFunc);
-	MeshGenerator::MeshGenHexagon(&mesh_);
-	mesh_gfx_.set_mesh(&mesh_);
-	m_MashFacetsAABB.reset(new GEO::MeshFacetsAABB(mesh_));
+	retina_mode_ = false;
+	scaling_ = 1.0f;
 }
 
 void GioApplication::draw_gui()
@@ -311,8 +310,6 @@ void GioApplication::DrawAlgorithmDialog()
 
 void GioApplication::CloseAlgorithmDialog()
 {
-	m_bSelectingFacet = false;
-	m_iSelectedFacet = GEO::NO_FACET;
 	CloseMeshCutAlgorithmDialog();
 }
 
@@ -327,8 +324,14 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 		ImGui::Begin("Cut Mesh", &m_bShowMeshCutAlgorithmDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
+		ImGui::Text("This algorithm cut an input mesh so that the mesh has only one boundary.");
+		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Note: Dose no effect on the mesh that has 0 boundary and 0 genus.\n");
 
+		ImGui::Text("Select a start facet:");
 		ImGui::Checkbox("Select Start Facet", &m_bSelectingFacet);
+		ImGui::SameLine();
+		ImGui::Text("Selected: %d", m_iSelectedFacet == GEO::NO_FACET ? 0 : m_iSelectedFacet);
+
 		if (!m_bSelectingFacet)
 		{
 			m_iSelectedFacet = GEO::NO_FACET;
@@ -344,6 +347,7 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 		if (m_bRunAlgorithm)
 		{
+			ImGui::SameLine();
 			ImGui::Checkbox("Visualize", &m_bVisualizeAlgorithm);
 		}
 
@@ -354,6 +358,8 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 		m_MeshAlgorithm.release();
 		m_bRunAlgorithm = false;
 		m_bVisualizeAlgorithm = false;
+		m_bSelectingFacet = false;
+		m_iSelectedFacet = GEO::NO_FACET;
 	}
 }
 
@@ -364,6 +370,9 @@ void GioApplication::CloseMeshCutAlgorithmDialog()
 		m_MeshAlgorithm.release();
 		m_bRunAlgorithm = false;
 		m_bVisualizeAlgorithm = false;
+		m_bSelectingFacet = false;
+		m_iSelectedFacet = GEO::NO_FACET;
+
 		m_bShowMeshCutAlgorithmDialog = false;
 	}
 }

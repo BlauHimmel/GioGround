@@ -111,6 +111,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS /D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DisableSpecificWarnings>4099</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,6 +153,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS /D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableSpecificWarnings>4099</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

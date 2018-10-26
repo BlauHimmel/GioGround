@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtest\gtest.h>
+#include <geogram\mesh\mesh_io.h>
 
 #include <MeshGenerator.hpp>
 #include <HalfedgeMeshWrapper.hpp>
@@ -8,33 +9,56 @@
 
 TEST(MeshCutAlgorithm, Function)
 {
-	GEO::Mesh Mesh;
-	MeshGenerator::MeshGenHexagon(&Mesh);
+	std::string Root = "..\\Mesh\\";
+	std::vector<std::string> BenchMarkModels = 
+	{
+		"plane_hole1.obj",
+		"plane_hole2.obj",
+		"donut_genus1.obj",
+		"simple_donut_genus1.obj",
+		"sphere_hole1.obj",
+		"sphere_hole2.obj",
+		"kitten.obj",
+		"kitten_holes.obj",
+		"king.obj"
+	};
 
-	MeshAlgorithm::MeshCutAlgorithm MeshCut;
-	GEO::index_t StartFacet = 0;
-	MeshCut.PutArg(MeshAlgorithm::MeshCutAlgorithm::PARAMS_KEY_START_FACET, StartFacet);
-	MeshCut.Execute(&Mesh);
+	for (std::string & Filename : BenchMarkModels)
+	{
+		GEO::Mesh Mesh;
+		GEO::mesh_load(Root + Filename, Mesh);
+		std::unique_ptr<MeshAlgorithm::MeshCutAlgorithm> MeshCut(new MeshAlgorithm::MeshCutAlgorithm());
+		GEO::index_t StartFacet = 0;
+		MeshCut->PutArg(MeshAlgorithm::MeshCutAlgorithm::PARAMS_KEY_START_FACET, StartFacet);
+		MeshCut->Execute(&Mesh);
 
-	GEO::Attribute<bool> AttriIsCornerMarked;
-	AttriIsCornerMarked.bind(Mesh.facet_corners.attributes(), "IsCornerMarked");
+		HalfedgeMeshWrapper Wrapper(&Mesh);
 
-	ASSERT_TRUE(AttriIsCornerMarked[0]);
-	ASSERT_TRUE(AttriIsCornerMarked[1]);
-	ASSERT_TRUE(AttriIsCornerMarked[2]);
-	ASSERT_TRUE(AttriIsCornerMarked[3]);
-	ASSERT_FALSE(AttriIsCornerMarked[4]);
-	ASSERT_FALSE(AttriIsCornerMarked[5]);
-	ASSERT_TRUE(AttriIsCornerMarked[6]);
-	ASSERT_TRUE(AttriIsCornerMarked[7]);
-	ASSERT_TRUE(AttriIsCornerMarked[8]);
-	ASSERT_FALSE(AttriIsCornerMarked[9]);
-	ASSERT_TRUE(AttriIsCornerMarked[10]);
-	ASSERT_FALSE(AttriIsCornerMarked[11]);
-	ASSERT_FALSE(AttriIsCornerMarked[12]);
-	ASSERT_TRUE(AttriIsCornerMarked[13]);
-	ASSERT_TRUE(AttriIsCornerMarked[14]);
-	ASSERT_TRUE(AttriIsCornerMarked[15]);
-	ASSERT_FALSE(AttriIsCornerMarked[16]);
-	ASSERT_TRUE(AttriIsCornerMarked[17]);
+		GEO::index_t iBeginCorner = GEO::NO_CORNER;
+		for (GEO::index_t iCorner = 0; iCorner < Mesh.facet_corners.nb(); ++iCorner)
+		{
+			if (Mesh.facet_corners.adjacent_facet(iCorner) == GEO::NO_FACET)
+			{
+				iBeginCorner = iCorner;
+				break;
+			}
+		}
+
+		GEO::index_t iCorner = iBeginCorner;
+		GEO::index_t iIter = 0;
+		GEO::index_t nMaxIterationTime = Mesh.facets.nb() * 3;
+
+		do
+		{
+			iCorner = Wrapper.Next(iCorner);
+			do
+			{
+				iCorner = Wrapper.Corner2Corner[iCorner];
+			} while (Mesh.facet_corners.adjacent_facet(iCorner) != GEO::NO_FACET);
+			iIter++;
+		} while (iCorner != iBeginCorner && iIter < nMaxIterationTime);
+		ASSERT_EQ(iCorner, iBeginCorner);
+
+		Mesh.clear(false, false);
+	}
 }

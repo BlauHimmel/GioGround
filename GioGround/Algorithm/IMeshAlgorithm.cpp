@@ -17,7 +17,7 @@ namespace MeshAlgorithm
 		return CheckAndGetArgs(pMesh);
 	}
 
-	bool IMeshAlgorithm::Execute(In GEO::Mesh * pMesh, Out GEO::Mesh * pOutMesh)
+	bool IMeshAlgorithm::ExecuteOut(In GEO::Mesh * pMesh, Out GEO::Mesh * pOutMesh)
 	{
 		if (pMesh == nullptr || pOutMesh == nullptr)
 		{
@@ -29,6 +29,11 @@ namespace MeshAlgorithm
 	}
 
 	bool IMeshAlgorithm::Visualize(In GEO::Mesh * const pMesh) const
+	{
+		return true;
+	}
+
+	bool IMeshAlgorithm::Reset()
 	{
 		return true;
 	}
