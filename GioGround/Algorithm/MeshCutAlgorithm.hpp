@@ -35,9 +35,12 @@ namespace MeshAlgorithm
 		void FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 		
 		// Step3
+		void ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh);
+
+		// Step4
 		void CutMeshByEdge(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 
-		// Computing data that are used for visualization
-		void ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh);
+		// Step5
+		void ClearAttribute(In GEO::Mesh * const pMesh);
 	};
 }
