@@ -324,7 +324,10 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 		ImGui::Begin("Cut Mesh", &m_bShowMeshCutAlgorithmDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
-		ImGui::Text("This algorithm should select a start facet:");
+		ImGui::Text("This algorithm cut an input mesh so that the mesh has only one boundary.");
+		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Note: Dose no effect on the mesh that has 0 boundary and 0 genus.\n");
+
+		ImGui::Text("Select a start facet:");
 		ImGui::Checkbox("Select Start Facet", &m_bSelectingFacet);
 		ImGui::SameLine();
 		ImGui::Text("Selected: %d", m_iSelectedFacet == GEO::NO_FACET ? 0 : m_iSelectedFacet);

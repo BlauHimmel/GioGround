@@ -374,6 +374,7 @@ namespace MeshAlgorithm
 		BoundariesCorners.push_back(GEO::vector<GEO::index_t>());
 
 		/*Index the boundary, 0 for we generated, others for the original boundaries*/
+		bool bOnlyOriginalBoundary = true;
 		GEO::index_t iBoundary = 1;
 		for (GEO::index_t i = 0; i < m_NotMarkedCornersIdx.size(); i++)
 		{
@@ -383,6 +384,8 @@ namespace MeshAlgorithm
 			{
 				AttriBoundaryIndex[iCorner] = 0;
 				AttriBoundaryIndex[iOppositeIndex] = 0;
+				BoundariesCorners[GEO::index_t(0)].insert(BoundariesCorners[GEO::index_t(0)].end(), { iCorner, iOppositeIndex });
+				bOnlyOriginalBoundary = false;
 				continue;
 			}
 
@@ -412,8 +415,27 @@ namespace MeshAlgorithm
 		}
 
 		/*Find the shortest path by BFS*/
-		for (GEO::index_t i = 1; i < BoundariesCorners.size(); i++)
+		GEO::index_t iMainBoundary = 0;
+		if (bOnlyOriginalBoundary)
 		{
+			GEO::index_t nMaxSize = 0;
+			for (GEO::index_t i = 0; i < BoundariesCorners.size(); i++)
+			{
+				if (nMaxSize < BoundariesCorners[i].size())
+				{
+					nMaxSize = BoundariesCorners[i].size();
+					iMainBoundary = i;
+				}
+			}
+		}
+
+		for (GEO::index_t i = 0; i < BoundariesCorners.size(); i++)
+		{
+			if (i == iMainBoundary || BoundariesCorners[i].size() == 0)
+			{
+				continue;
+			}
+
 			std::queue<GEO::index_t/*iFacet*/> Queue;
 			GEO::Attribute<GEO::index_t> AttriFacetDistance;
 			AttriFacetDistance.bind(pMesh->facets.attributes(), "FacetDistance");
@@ -446,7 +468,7 @@ namespace MeshAlgorithm
 				for (GEO::index_t j = 0; j < pMesh->facets.nb_vertices(iFacet); j++)
 				{
 					GEO::index_t iCorner = pMesh->facets.corner(iFacet, j);
-					if (AttriBoundaryIndex[iCorner] == 0)
+					if (AttriBoundaryIndex[iCorner] == iMainBoundary)
 					{
 						iFoundFacet = iFacet;
 						NearDistance = Distance;
@@ -479,7 +501,7 @@ namespace MeshAlgorithm
 				{
 					GEO::index_t iAdjFacet = pMesh->facets.adjacent(iFacet, j);
 
-					if (AttriFacetDistance[iAdjFacet] == CurrentDistance - 1)
+					if (iAdjFacet != GEO::NO_FACET && AttriFacetDistance[iAdjFacet] == CurrentDistance - 1)
 					{
 						GEO::index_t iCorner = pMesh->facets.corner(iFacet, j);
 						GEO::index_t iOppositeCorner = pHalfedgeMeshWrapper->Opposite(iCorner);
