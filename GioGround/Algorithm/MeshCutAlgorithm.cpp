@@ -266,6 +266,9 @@ namespace MeshAlgorithm
 
 	void MeshCutAlgorithm::FindLoopByDFS(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
 	{
+		assert(pHalfedgeMeshWrapper != nullptr);
+		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
+
 		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
 		
 		GEO::Attribute<bool> AttriIsCornerMarked(pMesh->facet_corners.attributes(), "IsCornerMarked");
@@ -577,6 +580,8 @@ namespace MeshAlgorithm
 
 	void MeshCutAlgorithm::ComputeCuttingEdgePoints(In GEO::Mesh * const pMesh)
 	{
+		assert(pMesh != nullptr);
+
 		GEO::Mesh CopyMesh;
 		CopyMesh.copy(*pMesh);
 
@@ -689,6 +694,8 @@ namespace MeshAlgorithm
 
 	void MeshCutAlgorithm::ClearAttribute(In GEO::Mesh * const pMesh)
 	{
+		assert(pMesh != nullptr);
+
 		GEO::AttributesManager & FacetAttributeManager = pMesh->facets.attributes();
 		GEO::AttributesManager & CornerAttributeManager = pMesh->facet_corners.attributes();
 
