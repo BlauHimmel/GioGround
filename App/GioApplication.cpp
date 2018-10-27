@@ -296,7 +296,10 @@ void GioApplication::draw_application_menus()
 {
 	if (ImGui::BeginMenu("Algorithm"))
 	{
+		CloseAlgorithmDialog();
+
 		ImGui::MenuItem("Slice Mesh", nullptr, &m_bShowMeshCutAlgorithmDialog);
+		ImGui::MenuItem("Barycentric Mapping", nullptr, &m_bShowBarycentricMappingAlgorithmDialog);
 		ImGui::EndMenu();
 	}
 
@@ -306,11 +309,13 @@ void GioApplication::draw_application_menus()
 void GioApplication::DrawAlgorithmDialog()
 {
 	DrawMeshCutAlgorithmDialog();
+	DrawBarycentricMappingAlgorithmDialog();
 }
 
 void GioApplication::CloseAlgorithmDialog()
 {
 	CloseMeshCutAlgorithmDialog();
+	CloseBarycentricMappingAlgorithmDialog();
 }
 
 void GioApplication::DrawMeshCutAlgorithmDialog()
@@ -353,14 +358,6 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 		ImGui::End();
 	}
-	else
-	{
-		m_MeshAlgorithm.release();
-		m_bRunAlgorithm = false;
-		m_bVisualizeAlgorithm = false;
-		m_bSelectingFacet = false;
-		m_iSelectedFacet = GEO::NO_FACET;
-	}
 }
 
 void GioApplication::CloseMeshCutAlgorithmDialog()
@@ -374,6 +371,55 @@ void GioApplication::CloseMeshCutAlgorithmDialog()
 		m_iSelectedFacet = GEO::NO_FACET;
 
 		m_bShowMeshCutAlgorithmDialog = false;
+	}
+}
+
+void GioApplication::DrawBarycentricMappingAlgorithmDialog()
+{
+	if (m_bShowBarycentricMappingAlgorithmDialog)
+	{
+		if (m_MeshAlgorithm == nullptr)
+		{
+			m_MeshAlgorithm.reset(new MeshAlgorithm::BarycentricMappingAlgorithm());
+		}
+
+		ImGui::Begin("Barycentric Mapping", &m_bShowBarycentricMappingAlgorithmDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+		std::vector<const char*> CoefficientTypes;
+		for (size_t i = 0; i < IM_ARRAYSIZE(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE); i++)
+		{
+			CoefficientTypes.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[i].c_str());
+		}
+
+		static int iItemIdx = 0;
+		ImGui::Combo("Coefficient Type", &iItemIdx, CoefficientTypes.data(), CoefficientTypes.size());
+
+		if (ImGui::Button("Run Algorithm"))
+		{
+			std::string CoefficientType = CoefficientTypes[iItemIdx];
+			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
+			m_MeshAlgorithm->Execute(&mesh_);
+			m_bRunAlgorithm = true;
+		}
+
+		if (m_bRunAlgorithm)
+		{
+			ImGui::SameLine();
+			ImGui::Checkbox("Visualize", &m_bVisualizeAlgorithm);
+		}
+
+		ImGui::End();
+	}
+}
+
+void GioApplication::CloseBarycentricMappingAlgorithmDialog()
+{
+	if (m_bShowBarycentricMappingAlgorithmDialog)
+	{
+		m_MeshAlgorithm.release();
+		m_bRunAlgorithm = false;
+		m_bVisualizeAlgorithm = false;
+
+		m_bShowBarycentricMappingAlgorithmDialog = false;
 	}
 }
 

@@ -167,12 +167,14 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Algorithm\BarycentricMappingAlgorithm.cpp" />
     <ClCompile Include="Algorithm\IMeshAlgorithm.cpp" />
     <ClCompile Include="Algorithm\MeshCutAlgorithm.cpp" />
     <ClCompile Include="HalfedgeMeshWrapper.cpp" />
     <ClCompile Include="MeshGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Algorithm\BarycentricMappingAlgorithm.hpp" />
     <ClInclude Include="Algorithm\IMeshAlgorithm.hpp" />
     <ClInclude Include="Algorithm\MeshCutAlgorithm.hpp" />
     <ClInclude Include="HalfedgeMeshWrapper.hpp" />

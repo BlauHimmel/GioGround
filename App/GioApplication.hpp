@@ -17,6 +17,7 @@
 
 #include <MeshGenerator.hpp>
 #include <Algorithm\MeshCutAlgorithm.hpp>
+#include <Algorithm\BarycentricMappingAlgorithm.hpp>
 
 extern class GioApplication * g_pApp;
 
@@ -34,6 +35,7 @@ protected:
 
 	std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> m_MeshAlgorithm = nullptr;
 	bool m_bShowMeshCutAlgorithmDialog = false;
+	bool m_bShowBarycentricMappingAlgorithmDialog = false;
 
 	bool m_bVisualizeAlgorithm = false;
 	bool m_bRunAlgorithm = false;
@@ -57,6 +59,9 @@ private:
 
 	void DrawMeshCutAlgorithmDialog();
 	void CloseMeshCutAlgorithmDialog();
+
+	void DrawBarycentricMappingAlgorithmDialog();
+	void CloseBarycentricMappingAlgorithmDialog();
 };
 
 GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event);
