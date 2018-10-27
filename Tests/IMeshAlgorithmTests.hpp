@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtest\gtest.h>
+#include <geogram\mesh\mesh_io.h>
 
 #include <Algorithm\IMeshAlgorithm.hpp>
 
@@ -150,3 +151,40 @@ TEST(IMeshAlgorithm, Function_PutArg_SetArg)
 	ASSERT_FALSE(IAlgorithm.GetArg("VectorUInt32", &VectorInt32ArgOut));
 }
 
+TEST(IMeshAlgorithm, Function_GetBoundaryNumber)
+{
+	std::string Root = "..\\Mesh\\";
+	std::vector<std::string> BenchMarkModels =
+	{
+		"plane_hole1.obj",
+		"plane_hole2.obj",
+		"donut_genus1.obj",
+		"simple_donut_genus1.obj",
+		"sphere_hole1.obj",
+		"sphere_hole2.obj",
+		"kitten.obj",
+		"kitten_holes.obj",
+		"king.obj"
+	};
+
+	std::vector<GEO::index_t> BoundaryNumber =
+	{
+		2,
+		3,
+		0,
+		0,
+		1,
+		2,
+		0,
+		3,
+		0
+	};
+
+	for (GEO::index_t i = 0; i < BenchMarkModels.size(); i++)
+	{
+		GEO::Mesh Mesh;
+		GEO::mesh_load(Root + BenchMarkModels[i], Mesh);
+		std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> IMeshAlgorithm(new MeshAlgorithm::IMeshAlgorithm());
+		ASSERT_EQ(IMeshAlgorithm->GetBoundaryNumber(&Mesh), BoundaryNumber[i]);;
+	}
+}

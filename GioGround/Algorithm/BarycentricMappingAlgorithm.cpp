@@ -115,6 +115,11 @@ namespace MeshAlgorithm
 			return false;
 		}
 
+		if (GetBoundaryNumber(pMesh) != 1)
+		{
+			return false;
+		}
+
 		return true;
 	}
 

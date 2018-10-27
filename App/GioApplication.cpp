@@ -426,6 +426,7 @@ void GioApplication::DrawBarycentricMappingAlgorithmDialog()
 		static int iBoundaryFixWeight = 0;
 		ImGui::Combo("Boundary Fix Weight", &iBoundaryFixWeight, BoundaryFixWeights.data(), int(BoundaryFixWeights.size()));
 
+		static bool bFailure = false;
 		if (ImGui::Button("Run Algorithm"))
 		{
 			std::string CoefficientType = CoefficientTypes[iCoefficientTypesIdx];
@@ -434,8 +435,30 @@ void GioApplication::DrawBarycentricMappingAlgorithmDialog()
 			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
 			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
 			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_BOUNDARY_FIX_WEIGHT, BoundaryFixWeight);
-			m_MeshAlgorithm->Execute(&mesh_);
-			m_bRunAlgorithm = true;
+			if (m_MeshAlgorithm->Execute(&mesh_))
+			{
+				m_bRunAlgorithm = true;
+				bFailure = false;
+			}
+			else
+			{
+				ImGui::OpenPopup("Error##Barycentric Mapping");
+				bFailure = true;
+			}
+		}
+
+		if (bFailure)
+		{
+			if (ImGui::BeginPopupModal("Error##Barycentric Mapping"), ImGuiWindowFlags_AlwaysAutoResize)
+			{
+				ImGui::Text("Some errors occurred. Input mesh must have 1 boundary and 0 genus!");
+				if (ImGui::Button("OK", ImVec2(120, 0)))
+				{
+					ImGui::CloseCurrentPopup();
+					bFailure = false;
+				}
+				ImGui::EndPopup();
+			}
 		}
 
 		if (m_bRunAlgorithm)
