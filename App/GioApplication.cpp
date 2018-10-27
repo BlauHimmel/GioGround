@@ -417,21 +417,23 @@ void GioApplication::DrawBarycentricMappingAlgorithmDialog()
 		static int iDomainShapesIdx = 0;
 		ImGui::Combo("Domain Shape", &iDomainShapesIdx, DomainShapes.data(), int(DomainShapes.size()));
 
-		std::vector<const char*> BoundaryFixWeight;
+		std::vector<const char*> BoundaryFixWeights;
 		for (size_t i = 0; i < IM_ARRAYSIZE(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT); i++)
 		{
-			BoundaryFixWeight.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[i].c_str());
+			BoundaryFixWeights.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[i].c_str());
 		}
 
 		static int iBoundaryFixWeight = 0;
-		ImGui::Combo("Boundary Fix Weight", &iBoundaryFixWeight, BoundaryFixWeight.data(), int(BoundaryFixWeight.size()));
+		ImGui::Combo("Boundary Fix Weight", &iBoundaryFixWeight, BoundaryFixWeights.data(), int(BoundaryFixWeights.size()));
 
 		if (ImGui::Button("Run Algorithm"))
 		{
 			std::string CoefficientType = CoefficientTypes[iCoefficientTypesIdx];
 			std::string DomainShape = DomainShapes[iDomainShapesIdx];
+			std::string BoundaryFixWeight = BoundaryFixWeights[iBoundaryFixWeight];
 			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
 			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
+			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_BOUNDARY_FIX_WEIGHT, BoundaryFixWeight);
 			m_MeshAlgorithm->Execute(&mesh_);
 			m_bRunAlgorithm = true;
 		}

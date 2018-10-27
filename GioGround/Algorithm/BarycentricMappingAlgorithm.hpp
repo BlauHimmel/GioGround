@@ -10,6 +10,13 @@ namespace MeshAlgorithm
 	private:
 		std::string m_CoefficientType = PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[0];
 		std::string m_DomainShape = PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[0];
+		std::string m_BoundaryFixWeight = PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[0];
+
+		GEO::index_t m_nInteriorVertices = GEO::index_t(-1);
+		GEO::index_t m_nBoundaryVertices = GEO::index_t(-1);
+
+		GEO::vector<double/*Dim = 3*/> m_InteriorVertices;
+		GEO::vector<double/*Dim = 3*/> m_BoundaryVertices;
 
 	public:
 		virtual bool Execute(InOut GEO::Mesh * pMesh) override;
@@ -35,8 +42,8 @@ namespace MeshAlgorithm
 
 		// Step2
 		void FixBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
-		void FixSquareBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
-		void FixSphereBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+		void FixSquareBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::vector<double> & Weight);
+		void FixSphereBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::vector<double> & Weight);
 
 	};
 }
