@@ -14,6 +14,7 @@
 #include <geogram\basic\stopwatch.h>
 
 #include <memory>
+#include <limits>
 
 #include <MeshGenerator.hpp>
 #include <Algorithm\MeshCutAlgorithm.hpp>
@@ -32,6 +33,8 @@ protected:
 	std::unique_ptr<GEO::MeshFacetsAABB> m_MashFacetsAABB;
 	GEO::index_t m_iSelectedFacet = GEO::NO_FACET;
 	bool m_bSelectingFacet = false;
+	GEO::index_t m_iSelectedVertex = GEO::NO_VERTEX;
+	bool m_bSelectingVertex = false;
 
 	std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> m_MeshAlgorithm = nullptr;
 	bool m_bShowMeshCutAlgorithmDialog = false;

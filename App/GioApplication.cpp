@@ -133,6 +133,21 @@ void GioApplication::draw_scene()
 		glupEnd();
 	}
 
+	if (m_bSelectingVertex && m_iSelectedVertex != GEO::NO_VERTEX)
+	{
+		double * pVertex = mesh_.vertices.point_ptr(m_iSelectedVertex);
+
+		GLUPfloat PointSize = 8.0;
+		GEO::vec4f PointColor(0.0f, 1.0f, 0.0f, 1.0f);
+
+		glupSetPointSize(PointSize);
+		glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, PointColor.data());
+
+		glupBegin(GLUP_POINTS);
+		glupVertex3d(pVertex[0], pVertex[1], pVertex[2]);
+		glupEnd();
+	}
+
 	if (m_bVisualizeAlgorithm && m_MeshAlgorithm != nullptr)
 	{
 		m_MeshAlgorithm->Visualize(&mesh_);
@@ -390,13 +405,33 @@ void GioApplication::DrawBarycentricMappingAlgorithmDialog()
 			CoefficientTypes.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[i].c_str());
 		}
 
-		static int iItemIdx = 0;
-		ImGui::Combo("Coefficient Type", &iItemIdx, CoefficientTypes.data(), CoefficientTypes.size());
+		static int iCoefficientTypesIdx = 0;
+		ImGui::Combo("Coefficient Type", &iCoefficientTypesIdx, CoefficientTypes.data(), int(CoefficientTypes.size()));
+
+		std::vector<const char*> DomainShapes;
+		for (size_t i = 0; i < IM_ARRAYSIZE(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE); i++)
+		{
+			DomainShapes.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[i].c_str());
+		}
+
+		static int iDomainShapesIdx = 0;
+		ImGui::Combo("Domain Shape", &iDomainShapesIdx, DomainShapes.data(), int(DomainShapes.size()));
+
+		std::vector<const char*> BoundaryFixWeight;
+		for (size_t i = 0; i < IM_ARRAYSIZE(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT); i++)
+		{
+			BoundaryFixWeight.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[i].c_str());
+		}
+
+		static int iBoundaryFixWeight = 0;
+		ImGui::Combo("Boundary Fix Weight", &iBoundaryFixWeight, BoundaryFixWeight.data(), int(BoundaryFixWeight.size()));
 
 		if (ImGui::Button("Run Algorithm"))
 		{
-			std::string CoefficientType = CoefficientTypes[iItemIdx];
+			std::string CoefficientType = CoefficientTypes[iCoefficientTypesIdx];
+			std::string DomainShape = DomainShapes[iDomainShapesIdx];
 			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
+			m_MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
 			m_MeshAlgorithm->Execute(&mesh_);
 			m_bRunAlgorithm = true;
 		}
@@ -443,7 +478,7 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 			{
 				g_pApp->m_iSelectedFacet = iFacet;
 			}
-			
+
 			if (SqDistance < 0.05 && Button == 1)
 			{
 				if (iFacet == g_pApp->m_iSelectedFacet)
@@ -451,7 +486,40 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 					g_pApp->m_iSelectedFacet = GEO::NO_FACET;
 				}
 			}
+		}
 
+		if (g_pApp->m_bSelectingVertex)
+		{
+			glup_viewer_get_picked_point(HitPoint, &bHitBackground);
+			iFacet = g_pApp->m_MashFacetsAABB->nearest_facet(GEO::vec3(HitPoint[0], HitPoint[1], HitPoint[2]), NearestPoint, SqDistance);
+
+			double MinSqDistance = std::numeric_limits<double>::max();
+			GEO::index_t iMinDistanceVertex = GEO::NO_VERTEX;
+
+			for (GEO::index_t i = 0; i < g_pApp->mesh_.facets.nb_vertices(iFacet); i++)
+			{
+				GEO::index_t iVertex = g_pApp->mesh_.facets.vertex(iFacet, i);
+				GEO::vec3 Vertex = g_pApp->mesh_.vertices.point(iVertex);
+				double SqDistance = std::pow((Vertex.x - NearestPoint.x), 2.0) + std::pow((Vertex.y - NearestPoint.y), 2.0) + std::pow((Vertex.z - NearestPoint.z), 2.0);
+				if (SqDistance < MinSqDistance)
+				{
+					MinSqDistance = SqDistance;
+					iMinDistanceVertex = iVertex;
+				}
+			}
+
+			if (MinSqDistance < 1e-5 && Button == 0)
+			{
+				g_pApp->m_iSelectedVertex = iMinDistanceVertex;
+			}
+
+			if (MinSqDistance < 1e-5 && Button == 1)
+			{
+				if (iMinDistanceVertex == g_pApp->m_iSelectedVertex)
+				{
+					g_pApp->m_iSelectedVertex = GEO::NO_VERTEX;
+				}
+			}
 		}
 	case GLUP_VIEWER_MOVE:
 		break;
