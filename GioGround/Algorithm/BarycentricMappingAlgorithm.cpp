@@ -73,6 +73,14 @@ namespace MeshAlgorithm
 
 	bool BarycentricMappingAlgorithm::Visualize(In GEO::Mesh * const pMesh) const
 	{
+		glupBegin(GLUP_LINES);
+		for (GEO::index_t i = 0; i <= m_BoundaryVertices.size() - 6; i += 3)
+		{
+			glupVertex3d(m_BoundaryVertices[i + 0], m_BoundaryVertices[i + 1], m_BoundaryVertices[i + 2]);
+			glupVertex3d(m_BoundaryVertices[i + 3], m_BoundaryVertices[i + 4], m_BoundaryVertices[i + 5]);
+		}
+
+		glupEnd();
 		return true;
 	}
 
@@ -218,15 +226,15 @@ namespace MeshAlgorithm
 			double Total = 0.0;
 			for (GEO::index_t i = 0; i < m_nBoundaryVertices - 1; i++)
 			{
-				GEO::vec3 Vertex1 = pMesh->vertices.point(i);
-				GEO::vec3 Vertex2 = pMesh->vertices.point(i + 1);
+				GEO::vec3 Vertex1 = pMesh->vertices.point(m_nInteriorVertices + i);
+				GEO::vec3 Vertex2 = pMesh->vertices.point(m_nInteriorVertices + i + 1);
 				double Distance = std::sqrt(std::pow(Vertex1.x - Vertex2.x, 2.0) + std::pow(Vertex1.y - Vertex2.y, 2.0) + std::pow(Vertex1.z - Vertex2.z, 2.0));
 				Total += Distance;
 				Weight[i] = Distance;
 			}
 
-			GEO::vec3 Vertex1 = pMesh->vertices.point(m_nBoundaryVertices - 1);
-			GEO::vec3 Vertex2 = pMesh->vertices.point(0);
+			GEO::vec3 Vertex1 = pMesh->vertices.point(m_nInteriorVertices + m_nBoundaryVertices - 1);
+			GEO::vec3 Vertex2 = pMesh->vertices.point(m_nInteriorVertices + 0);
 			double Distance = std::sqrt(std::pow(Vertex1.x - Vertex2.x, 2.0) + std::pow(Vertex1.y - Vertex2.y, 2.0) + std::pow(Vertex1.z - Vertex2.z, 2.0));
 			Total += Distance;
 			Weight[m_nBoundaryVertices - 1] = Distance;
@@ -258,6 +266,7 @@ namespace MeshAlgorithm
 		double X = MinX, Y = MinY, Z = 0.0;
 		double BoundaryLength = (MaxX - MinX + MaxY - MinY) * 2.0;
 		GEO::index_t iDirection = 0;
+		double Compensate = 0.0;
 
 		m_BoundaryVertices.resize(m_nBoundaryVertices * 3, 0.0);
 
@@ -273,8 +282,8 @@ namespace MeshAlgorithm
 			{
 				if (X + Step > MaxX)
 				{
+					Compensate = Step - (MaxX - X);
 					X = MaxX;
-					Y += Step - (MaxX - X);
 					iDirection++;
 				}
 				else
@@ -286,39 +295,54 @@ namespace MeshAlgorithm
 			{
 				if (Y + Step > MaxY)
 				{
+					Compensate = Step - (MaxY - Y);
 					Y = MaxY;
-					X -= Step - (MaxY - Y);
 					iDirection++;
 				}
 				else
 				{
 					Y += Step;
+					if (Compensate != 0.0)
+					{
+						Y += Compensate;
+						Compensate = 0.0;
+					}
 				}
 			}
 			else if (iDirection == 2)
 			{
 				if (X - Step < MinX)
 				{
+					Compensate = Step - (X - MinX);
 					X = MinX;
-					Y -= Step - (X - MinX);
 					iDirection++;
 				}
 				else
 				{
 					X -= Step;
+					if (Compensate != 0.0)
+					{
+						X -= Compensate;
+						Compensate = 0.0;
+					}
 				}
 			}
 			else if (iDirection == 3)
 			{
 				if (Y - Step < MinY)
 				{
+					Compensate = Step - (Y - MinY);
 					Y = MinY;
-					X += Step - (Y - MinY);
 					iDirection++;
 				}
 				else
 				{
 					Y -= Step;
+					if (Compensate != 0.0)
+					{
+						Y -= Compensate;
+						Compensate = 0.0;
+					}
 				}
 			}
 		}
@@ -341,8 +365,8 @@ namespace MeshAlgorithm
 			double Y = Radius * std::sin(Theta);
 			double Z = 0.0;
 
-			m_BoundaryVertices[3 * i + 0] = X;
-			m_BoundaryVertices[3 * i + 1] = Y;
+			m_BoundaryVertices[3 * i + 0] = X + Radius;
+			m_BoundaryVertices[3 * i + 1] = Y + Radius;
 			m_BoundaryVertices[3 * i + 2] = Z;
 
 			double Step = Parameters * Weight[i];
