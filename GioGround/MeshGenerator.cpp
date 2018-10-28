@@ -1,5 +1,7 @@
 #include "MeshGenerator.hpp"
 
+#include <geogram\mesh\mesh_reorder.h>
+
 namespace MeshGenerator
 {
 	bool MeshGenHexagon(InOut GEO::Mesh * pMesh)

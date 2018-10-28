@@ -4,7 +4,10 @@
 
 namespace MeshAlgorithm
 {
-	// Params: [CoefficientType -> "std::string" Required]
+	// Params:
+	// CoefficientType -> "std::string" Required, ["Mean Value Coordinates", "Discrete Harmonic Coordinates", "Wachspress Coordinates"]
+	// DomainShape -> "std::string" Required, ["Square", "Circle"]
+	// BoundaryFixWeight -> "std::string" Required, ["Mean", "Length"]
 	class BarycentricMappingAlgorithm : public IMeshAlgorithm
 	{
 	private:
@@ -12,8 +15,8 @@ namespace MeshAlgorithm
 		std::string m_DomainShape = PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[0];
 		std::string m_BoundaryFixWeight = PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[0];
 
-		GEO::index_t m_nInteriorVertices = GEO::index_t(-1);
-		GEO::index_t m_nBoundaryVertices = GEO::index_t(-1);
+		GEO::index_t m_nInteriorVertices = GEO::index_t(-1); // n
+		GEO::index_t m_nBoundaryVertices = GEO::index_t(-1); // b
 
 		GEO::vector<double/*Dim = 3*/> m_InteriorVertices;
 		GEO::vector<double/*Dim = 3*/> m_BoundaryVertices;
@@ -37,13 +40,43 @@ namespace MeshAlgorithm
 		virtual bool Reset() override;
 
 	private:
-		// Step1: 1....n interior vertices, n+1....n+b boundary vertices;
+		// Step1: 0....n-1 interior vertices, n....n+b-1 boundary vertices;
 		void Permutation(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 
 		// Step2
 		void FixBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
-		void FixSquareBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::vector<double> & Weight);
-		void FixSphereBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::vector<double> & Weight);
+		void FixSquareBoundaryVertices(In GEO::vector<double> & Weight);
+		void FixSphereBoundaryVertices(In GEO::vector<double> & Weight);
 
+		// Step3
+		void SoloveLinearEquation(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+
+		double Lambda_ij_BarycentricCoordinates(
+			In HalfedgeMeshWrapper * pHalfedgeMeshWrapper,
+			In GEO::index_t i, /*i = 0....n-1*/
+			In GEO::index_t j
+		) const;
+		
+		double w_ij_WachspressCoordinates(
+			In HalfedgeMeshWrapper * pHalfedgeMeshWrapper,
+			In GEO::index_t i, /*i = 0....n-1*/
+			In GEO::index_t j,
+			In GEO::index_t iAlpha_ij_Corner,
+			In GEO::index_t iAlpha_ji_Corner
+		) const;
+		double w_ij_DiscreteHarmonicCoordinates(
+			In HalfedgeMeshWrapper * pHalfedgeMeshWrapper,
+			In GEO::index_t i, /*i = 0....n-1*/
+			In GEO::index_t j,
+			In GEO::index_t iAlpha_ij_Corner,
+			In GEO::index_t iAlpha_ji_Corner
+		) const;
+		double w_ij_MeanValueCoordinates(
+			In HalfedgeMeshWrapper * pHalfedgeMeshWrapper,
+			In GEO::index_t i, /*i = 0....n-1*/
+			In GEO::index_t j,
+			In GEO::index_t iAlpha_ij_Corner,
+			In GEO::index_t iAlpha_ji_Corner
+		) const;
 	};
 }

@@ -33,6 +33,9 @@ namespace MeshAlgorithm
 
 	public:
 		GEO::index_t GetBoundaryNumber(In GEO::Mesh * const pMesh) const;
+		bool IsVertexAdjacent(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i, In GEO::index_t j) const;
+		GEO::vector<GEO::index_t> GetAdjacentVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
+		bool IsBoundaryVertex(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
 
 	protected:
 		virtual bool Reset();
