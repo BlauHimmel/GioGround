@@ -168,6 +168,7 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BarycentricMappingAlgorithmTests.hpp" />
     <ClInclude Include="HalfedgeMeshWrapperTests.hpp" />
     <ClInclude Include="IMeshAlgorithmTests.hpp" />
     <ClInclude Include="MeshCutAlgorithmTests.hpp" />

@@ -56,11 +56,11 @@ namespace MeshAlgorithm
 		TIMER_END(TimeCreateHalfedge);
 		GEO::Logger::out("Barycentric") << "(" << TimeCreateHalfedge << " sec)" << std::endl;
 
-		GEO::Logger::out("Barycentric") << "Executing vertices permutation...";
-		TIMER_START(TimePermutation);
-		Permutation(&Wrapper);
-		TIMER_END(TimePermutation);
-		GEO::Logger::out("Barycentric") << "(" << TimePermutation << " sec)" << std::endl;
+		GEO::Logger::out("Barycentric") << "Executing vertices partition...";
+		TIMER_START(TimeFindInteriorBoundary);
+		FindInteriorBoundary(&Wrapper);
+		TIMER_END(TimeFindInteriorBoundary);
+		GEO::Logger::out("Barycentric") << "(" << TimeFindInteriorBoundary << " sec)" << std::endl;
 
 		GEO::Logger::out("Barycentric") << "Fixing boundary vertices...";
 		TIMER_START(TimeFixBoundaryVertices);
@@ -74,9 +74,15 @@ namespace MeshAlgorithm
 		TIMER_END(TimeSoloveLinearEquation);
 		GEO::Logger::out("Barycentric") << "(" << TimeSoloveLinearEquation << " sec)" << std::endl;
 
+		GEO::Logger::out("Barycentric") << "Generating output...";
+		TIMER_START(TimeGenerateOutput);
+		GenerateOutput(&Wrapper);
+		TIMER_END(TimeGenerateOutput);
+		GEO::Logger::out("Barycentric") << "(" << TimeGenerateOutput << " sec)" << std::endl;
+
 		TIMER_END(TimeTotal);
 
-		GEO::Logger::out("Barycentric") << "Cut mesh finished! (Total : " << TimeTotal << " sec)" << std::endl;
+		GEO::Logger::out("Barycentric") << "Barycentric mapping finished! (Total : " << TimeTotal << " sec)" << std::endl;
 		return true;
 	}
 
@@ -143,17 +149,24 @@ namespace MeshAlgorithm
 	bool BarycentricMappingAlgorithm::Reset()
 	{
 		m_CoefficientType = PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[0];
+		m_DomainShape = PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[0];
+		m_BoundaryFixWeight = PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[0];
+		m_nInteriorVertices = GEO::index_t(-1);
+		m_nBoundaryVertices = GEO::index_t(-1);
+		m_iInteriorVertices.clear();
+		m_iBoundaryVertices.clear();
+		m_InteriorVertices.clear();
+		m_BoundaryVertices.clear();
 		return true;
 	}
 
-	void BarycentricMappingAlgorithm::Permutation(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
+	void BarycentricMappingAlgorithm::FindInteriorBoundary(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
 	{
 		assert(pHalfedgeMeshWrapper != nullptr);
 		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
 
 		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
 		
-		GEO::vector<GEO::index_t> InteriorVertices;
 		GEO::vector<GEO::index_t> BoundaryCornersNoOrder;
 
 		for (GEO::index_t iVertex = 0; iVertex < pMesh->vertices.nb(); iVertex++)
@@ -177,19 +190,18 @@ namespace MeshAlgorithm
 			}
 			else
 			{
-				InteriorVertices.push_back(iVertex);
+				m_iInteriorVertices.push_back(iVertex);
 			}
 		}
 
 		std::unordered_set<GEO::index_t> BoundaryCornersSet(BoundaryCornersNoOrder.begin(), BoundaryCornersNoOrder.end());
-		GEO::vector<GEO::index_t> BoundaryVertices;
 
 		GEO::index_t iCornerBegin = BoundaryCornersNoOrder[0];
 		GEO::index_t iCorner = iCornerBegin;
 
 		do
 		{
-			BoundaryVertices.push_back(pMesh->facet_corners.vertex(iCorner));
+			m_iBoundaryVertices.push_back(pMesh->facet_corners.vertex(iCorner));
 			
 			iCorner = pHalfedgeMeshWrapper->Next(iCorner);
 			while (BoundaryCornersSet.find(iCorner) == BoundaryCornersSet.end())
@@ -198,22 +210,8 @@ namespace MeshAlgorithm
 			}
 		} while (iCorner != iCornerBegin);
 
-		GEO::vector<GEO::index_t> Permutation(pMesh->vertices.nb(), GEO::index_t(-1));
-
-		for (GEO::index_t iInteriorVertex = 0; iInteriorVertex < InteriorVertices.size(); iInteriorVertex++)
-		{
-			Permutation[InteriorVertices[iInteriorVertex]] = iInteriorVertex;
-		}
-
-		for (GEO::index_t iBoundaryVertex = 0; iBoundaryVertex < BoundaryVertices.size(); iBoundaryVertex++)
-		{
-			Permutation[BoundaryVertices[iBoundaryVertex]] = iBoundaryVertex + InteriorVertices.size();
-		}
-
-		pMesh->vertices.permute_elements(Permutation);
-
-		m_nInteriorVertices = InteriorVertices.size();
-		m_nBoundaryVertices = BoundaryVertices.size();
+		m_nInteriorVertices = m_iInteriorVertices.size();
+		m_nBoundaryVertices = m_iBoundaryVertices.size();
 	}
 
 	void BarycentricMappingAlgorithm::FixBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
@@ -235,15 +233,15 @@ namespace MeshAlgorithm
 			double Total = 0.0;
 			for (GEO::index_t i = 0; i < m_nBoundaryVertices - 1; i++)
 			{
-				GEO::vec3 Vertex1 = pMesh->vertices.point(m_nInteriorVertices + i);
-				GEO::vec3 Vertex2 = pMesh->vertices.point(m_nInteriorVertices + i + 1);
+				GEO::vec3 Vertex1 = pMesh->vertices.point(m_iInteriorVertices[i]);
+				GEO::vec3 Vertex2 = pMesh->vertices.point(m_iInteriorVertices[i + 1]);
 				double Distance = std::sqrt(std::pow(Vertex1.x - Vertex2.x, 2.0) + std::pow(Vertex1.y - Vertex2.y, 2.0) + std::pow(Vertex1.z - Vertex2.z, 2.0));
 				Total += Distance;
 				Weight[i] = Distance;
 			}
 
-			GEO::vec3 Vertex1 = pMesh->vertices.point(m_nInteriorVertices + m_nBoundaryVertices - 1);
-			GEO::vec3 Vertex2 = pMesh->vertices.point(m_nInteriorVertices + 0);
+			GEO::vec3 Vertex1 = pMesh->vertices.point(m_iInteriorVertices[m_nBoundaryVertices - 1]);
+			GEO::vec3 Vertex2 = pMesh->vertices.point(m_iInteriorVertices[0]);
 			double Distance = std::sqrt(std::pow(Vertex1.x - Vertex2.x, 2.0) + std::pow(Vertex1.y - Vertex2.y, 2.0) + std::pow(Vertex1.z - Vertex2.z, 2.0));
 			Total += Distance;
 			Weight[m_nBoundaryVertices - 1] = Distance;
@@ -272,8 +270,8 @@ namespace MeshAlgorithm
 
 	void BarycentricMappingAlgorithm::FixSquareBoundaryVertices(In GEO::vector<double> & Weight)
 	{
-		double MaxX = 1.0, MinX = 0.0;
-		double MaxY = 1.0, MinY = 0.0;
+		double MaxX = 1.0, MinX = -1.0;
+		double MaxY = 1.0, MinY = -1.0;
 		double X = MinX, Y = MinY, Z = 0.0;
 		double BoundaryLength = (MaxX - MinX + MaxY - MinY) * 2.0;
 		GEO::index_t iDirection = 0;
@@ -300,6 +298,10 @@ namespace MeshAlgorithm
 				else
 				{
 					X += Step;
+					if (X == MaxX)
+					{
+						iDirection++;
+					}
 				}
 			}
 			else if (iDirection == 1)
@@ -317,6 +319,10 @@ namespace MeshAlgorithm
 					{
 						Y += Compensate;
 						Compensate = 0.0;
+					}
+					if (Y == MaxY)
+					{
+						iDirection++;
 					}
 				}
 			}
@@ -336,6 +342,10 @@ namespace MeshAlgorithm
 						X -= Compensate;
 						Compensate = 0.0;
 					}
+					if (X == MinX)
+					{
+						iDirection++;
+					}
 				}
 			}
 			else if (iDirection == 3)
@@ -353,6 +363,10 @@ namespace MeshAlgorithm
 					{
 						Y -= Compensate;
 						Compensate = 0.0;
+					}
+					if (Y == MinY)
+					{
+						iDirection++;
 					}
 				}
 			}
@@ -401,24 +415,32 @@ namespace MeshAlgorithm
 		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
 		{
 			A[i * n + i] = 1.0;
-			GEO::vector<GEO::index_t> iAdjVertices = GetAdjacentVertices(pHalfedgeMeshWrapper, i);
+			GEO::vector<GEO::index_t> iAdjVertices = GetAdjacentVertices(pHalfedgeMeshWrapper, m_iInteriorVertices[i]);
 			for (GEO::index_t j = 0; j < iAdjVertices.size(); j++)
 			{
-				A[i * n + iAdjVertices[j]] = -1.0 * Lambda_ij_BarycentricCoordinates(pHalfedgeMeshWrapper, i, iAdjVertices[j]);
+				auto Iter = std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), iAdjVertices[j]);
+				if (Iter != m_iInteriorVertices.end())
+				{
+					double Lambda_ij = Lambda_ij_BarycentricCoordinates(pHalfedgeMeshWrapper, m_iInteriorVertices[i], iAdjVertices[j]);
+					A[i * n + (Iter - m_iInteriorVertices.begin())] = -1.0 * Lambda_ij;
+				}
 			}
 		}
 
-		for (GEO::index_t i = 0; i < n; i++)
+		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
 		{
-			GEO::vector<GEO::index_t> iAdjVertices = GetAdjacentVertices(pHalfedgeMeshWrapper, i);
+			GEO::vector<GEO::index_t> iAdjVertices = GetAdjacentVertices(pHalfedgeMeshWrapper, m_iInteriorVertices[i]);
 			double u = 0.0, v = 0.0;
 			for (GEO::index_t j = 0; j < iAdjVertices.size(); j++)
 			{
 				if (IsBoundaryVertex(pHalfedgeMeshWrapper, iAdjVertices[j]))
 				{
-					double Lambda_ij = Lambda_ij_BarycentricCoordinates(pHalfedgeMeshWrapper, i, iAdjVertices[j]);
-					u += Lambda_ij * m_BoundaryVertices[iAdjVertices[j] * 3 + 0];
-					v += Lambda_ij * m_BoundaryVertices[iAdjVertices[j] * 3 + 1];
+					double Lambda_ij = Lambda_ij_BarycentricCoordinates(pHalfedgeMeshWrapper, m_iInteriorVertices[i], iAdjVertices[j]);
+
+					auto Iter = std::find(m_iBoundaryVertices.begin(), m_iBoundaryVertices.end(), iAdjVertices[j]);
+					GEO::index_t iBoundaryIndex = GEO::index_t(Iter - m_iBoundaryVertices.begin());
+					u += Lambda_ij * m_BoundaryVertices[iBoundaryIndex * 3 + 0];
+					v += Lambda_ij * m_BoundaryVertices[iBoundaryIndex * 3 + 1];
 				}
 			}
 
@@ -438,7 +460,7 @@ namespace MeshAlgorithm
 
 		if (Info > 0)
 		{
-			GEO::Logger::err("MKL") << "U_[" << Info << ", " << Info << "]  is exactly zero."
+			GEO::Logger::err("MKL") << "U_[" << Info << ", " << Info << "] is exactly zero."
 				"The factorization has been completed, but the factor U is exactly singular,"
 				" so the solution could not be computed." << std::endl;
 		}
@@ -461,7 +483,7 @@ namespace MeshAlgorithm
 	{
 		assert(pHalfedgeMeshWrapper != nullptr);
 		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
-		assert(i < m_nInteriorVertices);
+		assert(std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), i) != m_iInteriorVertices.end());
 
 		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
 
@@ -550,7 +572,7 @@ namespace MeshAlgorithm
 	{
 		assert(pHalfedgeMeshWrapper != nullptr);
 		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
-		assert(i < m_nInteriorVertices);
+		assert(std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), i) != m_iInteriorVertices.end());
 		assert(iAlpha_ij_Corner != GEO::NO_CORNER);
 		assert(iAlpha_ji_Corner != GEO::NO_CORNER);
 
@@ -583,10 +605,10 @@ namespace MeshAlgorithm
 
 		double r_ij = Beta_ij_Alpha_ij_Vector.length();
 
-		double Beta_ij = GEO::dot(Beta_ij_Alpha_ij_Vector, Beta_ij_Gamma_ij_Vector) /
-			(r_ij * Beta_ij_Gamma_ij_Vector.length());
-		double Alpha_ji = GEO::dot(Alpha_ji_Beta_ji_Vector, Alpha_ji_Gamma_ji_Vector) /
-			(r_ij * Alpha_ji_Gamma_ji_Vector.length());
+		double Beta_ij = std::acos(GEO::dot(Beta_ij_Alpha_ij_Vector, Beta_ij_Gamma_ij_Vector) /
+			(r_ij * Beta_ij_Gamma_ij_Vector.length()));
+		double Alpha_ji = std::acos(GEO::dot(Alpha_ji_Beta_ji_Vector, Alpha_ji_Gamma_ji_Vector) /
+			(r_ij * Alpha_ji_Gamma_ji_Vector.length()));
 
 		double Tan_Beta_ij = std::tan(Beta_ij);
 		double Tan_Alpha_ji = std::tan(Alpha_ji);
@@ -606,7 +628,7 @@ namespace MeshAlgorithm
 	{
 		assert(pHalfedgeMeshWrapper != nullptr);
 		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
-		assert(i < m_nInteriorVertices);
+		assert(std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), i) != m_iInteriorVertices.end());
 		assert(iAlpha_ij_Corner != GEO::NO_CORNER);
 		assert(iAlpha_ji_Corner != GEO::NO_CORNER);
 
@@ -637,10 +659,10 @@ namespace MeshAlgorithm
 		GEO::vec3 Gamma_ji_Aplha_ji_Vector = Alpha_ji_Vertex - Gamma_ji_Vertex;
 		GEO::vec3 Gamma_ji_Beta_ji_Vector = Beta_ji_Vertex - Gamma_ji_Vertex;
 
-		double Gamma_ij = GEO::dot(Gamma_ij_Aplha_ij_Vector, Gamma_ij_Beta_ij_Vector) /
-			(Gamma_ij_Aplha_ij_Vector.length() * Gamma_ij_Beta_ij_Vector.length());
-		double Gamma_ji = GEO::dot(Gamma_ji_Aplha_ji_Vector, Gamma_ji_Beta_ji_Vector) /
-			(Gamma_ji_Aplha_ji_Vector.length() * Gamma_ji_Beta_ji_Vector.length());
+		double Gamma_ij = std::acos(GEO::dot(Gamma_ij_Aplha_ij_Vector, Gamma_ij_Beta_ij_Vector) /
+			(Gamma_ij_Aplha_ij_Vector.length() * Gamma_ij_Beta_ij_Vector.length()));
+		double Gamma_ji = std::acos(GEO::dot(Gamma_ji_Aplha_ji_Vector, Gamma_ji_Beta_ji_Vector) /
+			(Gamma_ji_Aplha_ji_Vector.length() * Gamma_ji_Beta_ji_Vector.length()));
 
 		double Tan_Gamma_ij = std::tan(Gamma_ij);
 		double Tan_Gamma_ji = std::tan(Gamma_ji);
@@ -660,7 +682,7 @@ namespace MeshAlgorithm
 	{
 		assert(pHalfedgeMeshWrapper != nullptr);
 		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
-		assert(i < m_nInteriorVertices);
+		assert(std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), i) != m_iInteriorVertices.end());
 		assert(iAlpha_ij_Corner != GEO::NO_CORNER);
 		assert(iAlpha_ji_Corner != GEO::NO_CORNER);
 
@@ -693,14 +715,54 @@ namespace MeshAlgorithm
 
 		double r_ij = Alpha_ij_Beta_ij_Vector.length();
 
-		double Alpha_ij = GEO::dot(Alpha_ij_Beta_ij_Vector, Alpha_ij_Gamma_ij_Vector) /
-			(r_ij * Alpha_ij_Gamma_ij_Vector.length());
-		double Beta_ji = GEO::dot(Beta_ji_Alpha_ji_Vector, Beta_ji_Gamma_ji_Vector) /
-			(r_ij * Beta_ji_Gamma_ji_Vector.length());
+		double Alpha_ij = std::acos(GEO::dot(Alpha_ij_Beta_ij_Vector, Alpha_ij_Gamma_ij_Vector) /
+			(r_ij * Alpha_ij_Gamma_ij_Vector.length()));
+		double Beta_ji = std::acos(GEO::dot(Beta_ji_Alpha_ji_Vector, Beta_ji_Gamma_ji_Vector) /
+			(r_ij * Beta_ji_Gamma_ji_Vector.length()));
 
 		double Tan_Half_Alpha_ij = std::tan(0.5 * Alpha_ij);
 		double Tan_Half_Beta_ji = std::tan(0.5 * Beta_ji);
 
 		return (Tan_Half_Alpha_ij + Tan_Half_Beta_ji) / r_ij;
+	}
+
+	void BarycentricMappingAlgorithm::GenerateOutput(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
+	{
+		assert(pHalfedgeMeshWrapper != nullptr);
+		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
+		assert(m_InteriorVertices.size() + m_BoundaryVertices.size() == pHalfedgeMeshWrapper->pMesh->vertices.nb() * 3);
+
+		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
+
+		//m_ParameterizationMesh.copy(*pMesh);
+
+		GEO::Attribute<double> AttriTexCoord(pMesh->vertices.attributes(), "tex_coord");
+		AttriTexCoord.redim(2);
+
+		for (GEO::index_t i = 0; i < m_nInteriorVertices; i++)
+		{
+			GEO::index_t iVertex = m_iInteriorVertices[i];
+
+			// double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
+			// pVertex[0] = m_InteriorVertices[i * 3 + 0];
+			// pVertex[1] = m_InteriorVertices[i * 3 + 1];
+			// pVertex[2] = m_InteriorVertices[i * 3 + 2];
+
+			AttriTexCoord[iVertex * 2 + 0] = m_InteriorVertices[i * 3 + 0];
+			AttriTexCoord[iVertex * 2 + 1] = m_InteriorVertices[i * 3 + 1];
+		}
+
+		for (GEO::index_t i = 0; i < m_nBoundaryVertices; i++)
+		{
+			GEO::index_t iVertex = m_iBoundaryVertices[i];
+
+			// double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
+			// pVertex[0] = m_BoundaryVertices[i * 3 + 0];
+			// pVertex[1] = m_BoundaryVertices[i * 3 + 1];
+			// pVertex[2] = m_BoundaryVertices[i * 3 + 2];
+
+			AttriTexCoord[iVertex * 2 + 0] = m_BoundaryVertices[i * 3 + 0];
+			AttriTexCoord[iVertex * 2 + 1] = m_BoundaryVertices[i * 3 + 1];
+		}
 	}
 }

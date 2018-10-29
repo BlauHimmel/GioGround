@@ -17,9 +17,13 @@ namespace MeshAlgorithm
 
 		GEO::index_t m_nInteriorVertices = GEO::index_t(-1); // n
 		GEO::index_t m_nBoundaryVertices = GEO::index_t(-1); // b
+		GEO::vector<GEO::index_t> m_iInteriorVertices;
+		GEO::vector<GEO::index_t> m_iBoundaryVertices;
 
 		GEO::vector<double/*Dim = 3*/> m_InteriorVertices;
 		GEO::vector<double/*Dim = 3*/> m_BoundaryVertices;
+
+		GEO::Mesh m_ParameterizationMesh;
 
 	public:
 		virtual bool Execute(InOut GEO::Mesh * pMesh) override;
@@ -40,8 +44,8 @@ namespace MeshAlgorithm
 		virtual bool Reset() override;
 
 	private:
-		// Step1: 0....n-1 interior vertices, n....n+b-1 boundary vertices;
-		void Permutation(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
+		// Step1
+		void FindInteriorBoundary(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 
 		// Step2
 		void FixBoundaryVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
@@ -78,5 +82,8 @@ namespace MeshAlgorithm
 			In GEO::index_t iAlpha_ij_Corner,
 			In GEO::index_t iAlpha_ji_Corner
 		) const;
+
+		// Step 4
+		void GenerateOutput(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 	};
 }
