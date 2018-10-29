@@ -302,6 +302,12 @@ bool GioApplication::load(const std::string & Filename)
 	return bResult;
 }
 
+bool GioApplication::save(const std::string & Filename)
+{
+	bool bResult = GEO::SimpleMeshApplication::save(Filename);
+	return bResult;
+}
+
 int GioApplication::PANE_WIDTH() const
 {
 	return int(180 * scaling());;

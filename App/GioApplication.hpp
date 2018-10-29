@@ -26,6 +26,13 @@ class GioApplication : public GEO::SimpleMeshApplication
 {
 	friend GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event);
 
+	struct Algorithm
+	{
+		std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> m_MeshAlgorithm = nullptr;
+		bool bVisualizeAlgorithm = false;
+		bool bRunAlgorithm;
+	};
+
 protected:
 	float m_BorderWidth = 0.1f;
 	GEO::vec4f m_BorderColor = GEO::vec4f(1.0f, 0.0f, 0.0f, 1.0f);
@@ -51,6 +58,7 @@ public:
 	virtual void draw_gui() override;
 	virtual void draw_object_properties() override;
 	virtual bool load(const std::string & Filename) override;
+	virtual bool save(const std::string & Filename) override;
 
 protected:
 	virtual int PANE_WIDTH() const override;

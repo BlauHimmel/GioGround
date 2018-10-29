@@ -734,35 +734,41 @@ namespace MeshAlgorithm
 
 		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
 
-		//m_ParameterizationMesh.copy(*pMesh);
+		m_ParameterizationMesh.copy(*pMesh);
 
-		GEO::Attribute<double> AttriTexCoord(pMesh->vertices.attributes(), "tex_coord");
-		AttriTexCoord.redim(2);
+		GEO::AttributesManager & CornerAttributeManager = pMesh->facet_corners.attributes();
+		if (CornerAttributeManager.is_defined("tex_coord"))
+		{
+			CornerAttributeManager.delete_attribute_store("tex_coord");
+		}
+
+		GEO::Attribute<double> AttriVertexTexCoord(pMesh->vertices.attributes(), "tex_coord");
+		AttriVertexTexCoord.redim(2);
 
 		for (GEO::index_t i = 0; i < m_nInteriorVertices; i++)
 		{
 			GEO::index_t iVertex = m_iInteriorVertices[i];
 
-			// double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
-			// pVertex[0] = m_InteriorVertices[i * 3 + 0];
-			// pVertex[1] = m_InteriorVertices[i * 3 + 1];
-			// pVertex[2] = m_InteriorVertices[i * 3 + 2];
+			double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
+			pVertex[0] = m_InteriorVertices[i * 3 + 0];
+			pVertex[1] = m_InteriorVertices[i * 3 + 1];
+			pVertex[2] = m_InteriorVertices[i * 3 + 2];
 
-			AttriTexCoord[iVertex * 2 + 0] = m_InteriorVertices[i * 3 + 0];
-			AttriTexCoord[iVertex * 2 + 1] = m_InteriorVertices[i * 3 + 1];
+			AttriVertexTexCoord[iVertex * 2 + 0] = m_InteriorVertices[i * 3 + 0];
+			AttriVertexTexCoord[iVertex * 2 + 1] = m_InteriorVertices[i * 3 + 1];
 		}
 
 		for (GEO::index_t i = 0; i < m_nBoundaryVertices; i++)
 		{
 			GEO::index_t iVertex = m_iBoundaryVertices[i];
 
-			// double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
-			// pVertex[0] = m_BoundaryVertices[i * 3 + 0];
-			// pVertex[1] = m_BoundaryVertices[i * 3 + 1];
-			// pVertex[2] = m_BoundaryVertices[i * 3 + 2];
+			double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
+			pVertex[0] = m_BoundaryVertices[i * 3 + 0];
+			pVertex[1] = m_BoundaryVertices[i * 3 + 1];
+			pVertex[2] = m_BoundaryVertices[i * 3 + 2];
 
-			AttriTexCoord[iVertex * 2 + 0] = m_BoundaryVertices[i * 3 + 0];
-			AttriTexCoord[iVertex * 2 + 1] = m_BoundaryVertices[i * 3 + 1];
+			AttriVertexTexCoord[iVertex * 2 + 0] = m_BoundaryVertices[i * 3 + 0];
+			AttriVertexTexCoord[iVertex * 2 + 1] = m_BoundaryVertices[i * 3 + 1];
 		}
 	}
 }
