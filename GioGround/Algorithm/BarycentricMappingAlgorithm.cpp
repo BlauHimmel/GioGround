@@ -88,14 +88,6 @@ namespace MeshAlgorithm
 
 	bool BarycentricMappingAlgorithm::Visualize(In GEO::Mesh * const pMesh) const
 	{
-		glupBegin(GLUP_LINES);
-		for (GEO::index_t i = 0; i <= m_BoundaryVertices.size() - 6; i += 3)
-		{
-			glupVertex3d(m_BoundaryVertices[i + 0], m_BoundaryVertices[i + 1], m_BoundaryVertices[i + 2]);
-			glupVertex3d(m_BoundaryVertices[i + 3], m_BoundaryVertices[i + 4], m_BoundaryVertices[i + 5]);
-		}
-
-		glupEnd();
 		return true;
 	}
 
@@ -270,8 +262,8 @@ namespace MeshAlgorithm
 
 	void BarycentricMappingAlgorithm::FixSquareBoundaryVertices(In GEO::vector<double> & Weight)
 	{
-		double MaxX = 1.0, MinX = -1.0;
-		double MaxY = 1.0, MinY = -1.0;
+		double MaxX = 1.0, MinX = 0.0;
+		double MaxY = 1.0, MinY = 0.0;
 		double X = MinX, Y = MinY, Z = 0.0;
 		double BoundaryLength = (MaxX - MinX + MaxY - MinY) * 2.0;
 		GEO::index_t iDirection = 0;

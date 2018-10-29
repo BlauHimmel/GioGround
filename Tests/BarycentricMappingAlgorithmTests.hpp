@@ -13,23 +13,111 @@
 
 TEST(BarycentricMappingAlgorithm, Function)
 {
-	GEO::Mesh Mesh;
-	MeshGenerator::MeshGenPyramid(&Mesh);
-	MeshAlgorithm::BarycentricMappingAlgorithm IAlgorithm;
+	{
+		std::string Root = "..\\Mesh\\";
+		std::vector<std::string> BenchMarkModels =
+		{
+			"parameterization_basic_benchmark.obj"
+		};
 
-	std::string CoefficientType = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[1];
-	std::string DomainShape = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[0];
-	std::string BoundaryFixWeight = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[0];
+		std::vector<double> CorrectU =
+		{
+			(0.4538 + 1.0) * 0.5
+		};
 
-	IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
-	IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
-	IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_BOUNDARY_FIX_WEIGHT, BoundaryFixWeight);
+		for (GEO::index_t i = 0; i < BenchMarkModels.size(); i++)
+		{
+			GEO::Mesh Mesh;
+			GEO::mesh_load(Root + BenchMarkModels[i], Mesh);
+			GEO::mesh_reorder(Mesh, GEO::MESH_ORDER_MORTON);
 
-	GEO::vec3 v0 = Mesh.vertices.point(0);
-	GEO::vec3 v1 = Mesh.vertices.point(1);
-	GEO::vec3 v2 = Mesh.vertices.point(2);
-	GEO::vec3 v3 = Mesh.vertices.point(3);
-	GEO::vec3 v4 = Mesh.vertices.point(4);
+			MeshAlgorithm::BarycentricMappingAlgorithm IAlgorithm;
 
-	/*TODO : Finished it*/
+			std::string CoefficientType = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[0];
+			std::string DomainShape = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[0];
+			std::string BoundaryFixWeight = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[0];
+
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_BOUNDARY_FIX_WEIGHT, BoundaryFixWeight);
+			IAlgorithm.Execute(&Mesh);
+
+			GEO::Attribute<double> AttriVertexTexCoord(Mesh.vertices.attributes(), "tex_coord");
+
+			ASSERT_NEAR(AttriVertexTexCoord[4 * 2 + 0], CorrectU[i], 1e-4);
+			ASSERT_NEAR(AttriVertexTexCoord[4 * 2 + 1], 0.5, 1e-4);
+		}
+	}
+
+	{
+		std::string Root = "..\\Mesh\\";
+		std::vector<std::string> BenchMarkModels =
+		{
+			"parameterization_basic_benchmark.obj"
+		};
+
+		std::vector<double> CorrectU =
+		{
+			(2.1138 + 1.0) * 0.5
+		};
+
+		for (GEO::index_t i = 0; i < BenchMarkModels.size(); i++)
+		{
+			GEO::Mesh Mesh;
+			GEO::mesh_load(Root + BenchMarkModels[i], Mesh);
+			GEO::mesh_reorder(Mesh, GEO::MESH_ORDER_MORTON);
+
+			MeshAlgorithm::BarycentricMappingAlgorithm IAlgorithm;
+
+			std::string CoefficientType = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[1];
+			std::string DomainShape = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[0];
+			std::string BoundaryFixWeight = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[0];
+
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_BOUNDARY_FIX_WEIGHT, BoundaryFixWeight);
+			IAlgorithm.Execute(&Mesh);
+
+			GEO::Attribute<double> AttriVertexTexCoord(Mesh.vertices.attributes(), "tex_coord");
+
+			ASSERT_NEAR(AttriVertexTexCoord[4 * 2 + 0], CorrectU[i], 1e-4);
+			ASSERT_NEAR(AttriVertexTexCoord[4 * 2 + 1], 0.5, 1e-4);
+		}
+	}
+
+	{
+		std::string Root = "..\\Mesh\\";
+		std::vector<std::string> BenchMarkModels =
+		{
+			"parameterization_basic_benchmark.obj"
+		};
+
+		std::vector<double> CorrectU =
+		{
+			(-35.1369 + 1.0) * 0.5
+		};
+
+		for (GEO::index_t i = 0; i < BenchMarkModels.size(); i++)
+		{
+			GEO::Mesh Mesh;
+			GEO::mesh_load(Root + BenchMarkModels[i], Mesh);
+			GEO::mesh_reorder(Mesh, GEO::MESH_ORDER_MORTON);
+
+			MeshAlgorithm::BarycentricMappingAlgorithm IAlgorithm;
+
+			std::string CoefficientType = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[2];
+			std::string DomainShape = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[0];
+			std::string BoundaryFixWeight = MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[0];
+
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
+			IAlgorithm.PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_BOUNDARY_FIX_WEIGHT, BoundaryFixWeight);
+			IAlgorithm.Execute(&Mesh);
+
+			GEO::Attribute<double> AttriVertexTexCoord(Mesh.vertices.attributes(), "tex_coord");
+
+			ASSERT_NEAR(AttriVertexTexCoord[4 * 2 + 0], CorrectU[i], 1e-4);
+			ASSERT_NEAR(AttriVertexTexCoord[4 * 2 + 1], 0.5, 1e-4);
+		}
+	}
 }

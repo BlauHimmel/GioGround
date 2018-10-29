@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <limits>
+#include <vector>
 
 #include <MeshGenerator.hpp>
 #include <Algorithm\MeshCutAlgorithm.hpp>
@@ -28,9 +29,10 @@ class GioApplication : public GEO::SimpleMeshApplication
 
 	struct Algorithm
 	{
-		std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> m_MeshAlgorithm = nullptr;
+		std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> MeshAlgorithm = nullptr;
 		bool bVisualizeAlgorithm = false;
-		bool bRunAlgorithm;
+		bool bRunAlgorithm = false;
+		bool bShowDialog = false;
 	};
 
 protected:
@@ -43,12 +45,12 @@ protected:
 	GEO::index_t m_iSelectedVertex = GEO::NO_VERTEX;
 	bool m_bSelectingVertex = false;
 
-	std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> m_MeshAlgorithm = nullptr;
-	bool m_bShowMeshCutAlgorithmDialog = false;
-	bool m_bShowBarycentricMappingAlgorithmDialog = false;
+	std::vector<Algorithm> m_Algorithms;
+	size_t m_iCurrentAlgorithm = size_t(-1);
 
-	bool m_bVisualizeAlgorithm = false;
-	bool m_bRunAlgorithm = false;
+	const size_t ALGORITHM_NUMBER = 2;
+	const size_t CUT_MESH_ALGORITHM_INDEX = 0;
+	const size_t BARYCENTRIC_MAPPING_ALGORITHM_INDEX = 1;
 
 public:
 	GioApplication(int argc, char ** argv);

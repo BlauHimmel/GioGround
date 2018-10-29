@@ -3,7 +3,6 @@
 #include <gtest\gtest.h>
 #include <geogram\mesh\mesh_io.h>
 #include <geogram\mesh\mesh_reorder.h>
-#include <geogram\mesh\mesh_AABB.h>
 
 #include <MeshGenerator.hpp>
 #include <HalfedgeMeshWrapper.hpp>

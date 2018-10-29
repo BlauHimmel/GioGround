@@ -2,6 +2,7 @@
 
 #include <gtest\gtest.h>
 #include <geogram\mesh\mesh_io.h>
+#include <geogram\mesh\mesh_reorder.h>
 
 #include <Algorithm\IMeshAlgorithm.hpp>
 #include <MeshGenerator.hpp>
@@ -185,6 +186,7 @@ TEST(IMeshAlgorithm, Function_GetBoundaryNumber)
 	{
 		GEO::Mesh Mesh;
 		GEO::mesh_load(Root + BenchMarkModels[i], Mesh);
+		GEO::mesh_reorder(Mesh, GEO::MESH_ORDER_MORTON);
 		std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> IMeshAlgorithm(new MeshAlgorithm::IMeshAlgorithm());
 		ASSERT_EQ(IMeshAlgorithm->GetBoundaryNumber(&Mesh), BoundaryNumber[i]);;
 	}
