@@ -36,6 +36,7 @@ namespace MeshAlgorithm
 		bool IsVertexAdjacent(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i, In GEO::index_t j) const;
 		GEO::vector<GEO::index_t> GetAdjacentVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
 		bool IsBoundaryVertex(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
+		void GetBBox(In GEO::Mesh * const pMesh, Out double * XYZMin, Out double * XYZMax, bool bAnimate) const;
 
 	protected:
 		virtual bool Reset();

@@ -27,8 +27,6 @@ namespace MeshAlgorithm
 		GEO::vector<double/*Dim = 3*/> m_InteriorVertices;
 		GEO::vector<double/*Dim = 3*/> m_BoundaryVertices;
 
-		GEO::Mesh m_ParameterizationMesh;
-
 	public:
 		virtual bool Execute(InOut GEO::Mesh * pMesh) override;
 		virtual bool Visualize(In GEO::Mesh * const pMesh) const override;

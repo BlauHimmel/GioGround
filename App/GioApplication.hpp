@@ -44,6 +44,7 @@ protected:
 	bool m_bSelectingFacet = false;
 	GEO::index_t m_iSelectedVertex = GEO::NO_VERTEX;
 	bool m_bSelectingVertex = false;
+	bool m_bAniamted = false;
 
 	std::vector<Algorithm> m_Algorithms;
 	size_t m_iCurrentAlgorithm = size_t(-1);

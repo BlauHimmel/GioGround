@@ -1092,8 +1092,7 @@ namespace MeshAlgorithm
 		assert(m_InteriorVertices.size() + m_BoundaryVertices.size() == pHalfedgeMeshWrapper->pMesh->vertices.nb() * 3);
 
 		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
-
-		m_ParameterizationMesh.copy(*pMesh);
+		pMesh->vertices.set_dimension(6);
 
 		GEO::AttributesManager & CornerAttributeManager = pMesh->facet_corners.attributes();
 		if (CornerAttributeManager.is_defined("tex_coord"))
@@ -1104,14 +1103,22 @@ namespace MeshAlgorithm
 		GEO::Attribute<double> AttriVertexTexCoord(pMesh->vertices.attributes(), "tex_coord");
 		AttriVertexTexCoord.redim(2);
 
+		double XYZMin[3];
+		double XYZMax[3];
+		GetBBox(pMesh, XYZMin, XYZMax, false);
+		double DeltaX = XYZMax[0] - XYZMin[0];
+		double DeltaY = XYZMax[1] - XYZMin[1];
+		double Delta = std::max(DeltaX, DeltaY);
+		double HalfDelta = 0.5  * Delta;
+
 		for (GEO::index_t i = 0; i < m_nInteriorVertices; i++)
 		{
 			GEO::index_t iVertex = m_iInteriorVertices[i];
 
-			double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
-			pVertex[0] = m_InteriorVertices[i * 3 + 0];
-			pVertex[1] = m_InteriorVertices[i * 3 + 1];
-			pVertex[2] = m_InteriorVertices[i * 3 + 2];
+			double * pVertex = pMesh->vertices.point_ptr(iVertex);
+
+			pVertex[3] = m_InteriorVertices[i * 3 + 0] * Delta - HalfDelta;
+			pVertex[4] = m_InteriorVertices[i * 3 + 1] * Delta - HalfDelta;
 
 			AttriVertexTexCoord[iVertex * 2 + 0] = m_InteriorVertices[i * 3 + 0];
 			AttriVertexTexCoord[iVertex * 2 + 1] = m_InteriorVertices[i * 3 + 1];
@@ -1121,13 +1128,15 @@ namespace MeshAlgorithm
 		{
 			GEO::index_t iVertex = m_iBoundaryVertices[i];
 
-			double * pVertex = m_ParameterizationMesh.vertices.point_ptr(iVertex);
-			pVertex[0] = m_BoundaryVertices[i * 3 + 0];
-			pVertex[1] = m_BoundaryVertices[i * 3 + 1];
-			pVertex[2] = m_BoundaryVertices[i * 3 + 2];
+			double * pVertex = pMesh->vertices.point_ptr(iVertex);
+
+			pVertex[3] = m_BoundaryVertices[i * 3 + 0] * Delta - HalfDelta;
+			pVertex[4] = m_BoundaryVertices[i * 3 + 1] * Delta - HalfDelta;
 
 			AttriVertexTexCoord[iVertex * 2 + 0] = m_BoundaryVertices[i * 3 + 0];
 			AttriVertexTexCoord[iVertex * 2 + 1] = m_BoundaryVertices[i * 3 + 1];
 		}
+
+
 	}
 }

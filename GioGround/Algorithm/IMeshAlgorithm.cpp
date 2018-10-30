@@ -152,6 +152,33 @@ namespace MeshAlgorithm
 		return false;
 	}
 
+	void IMeshAlgorithm::GetBBox(In GEO::Mesh * const pMesh, Out double * XYZMin, Out double * XYZMax, bool bAnimate) const
+	{
+		assert(pMesh != nullptr);
+		assert(pMesh->vertices.dimension() >= GEO::index_t(bAnimate ? 6 : 3));
+
+		for (GEO::index_t c = 0; c < 3; c++) 
+		{
+			XYZMin[c] = GEO::Numeric::max_float64();
+			XYZMax[c] = GEO::Numeric::min_float64();
+		}
+
+		for (GEO::index_t v = 0; v < pMesh->vertices.nb(); ++v)
+		{
+			const double * pV = pMesh->vertices.point_ptr(v);
+			for (GEO::coord_index_t c = 0; c < 3; ++c)
+			{
+				XYZMin[c] = std::min(XYZMin[c], pV[c]);
+				XYZMax[c] = std::max(XYZMax[c], pV[c]);
+				if (bAnimate)
+				{
+					XYZMin[c] = std::min(XYZMin[c], pV[c + 3]);
+					XYZMax[c] = std::max(XYZMax[c], pV[c + 3]);
+				}
+			}
+		}
+	}
+
 	bool IMeshAlgorithm::Reset()
 	{
 		return true;

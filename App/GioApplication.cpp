@@ -14,6 +14,7 @@ void GioApplication::draw_scene()
 
 	if (glup_viewer_is_enabled(GLUP_VIEWER_IDLE_REDRAW))
 	{
+		mesh_gfx_.set_animate(true);
 		anim_time_ = float(sin(double(anim_speed_) * GEO::SystemStopwatch::now()));
 		anim_time_ = 0.5f * (anim_time_ + 1.0f);
 	}
@@ -66,7 +67,7 @@ void GioApplication::draw_scene()
 	{
 		float specular_backup = glupGetSpecular();
 		glupSetSpecular(0.4f);
-		mesh_gfx_.draw_surface();
+		mesh_gfx_.draw_surface(); 
 		glupSetSpecular(specular_backup);
 	}
 
@@ -383,6 +384,8 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 	{
 		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bRunAlgorithm = false;
 		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_bSelectingFacet = false;
+		m_iSelectedFacet = GEO::NO_FACET;
 	}
 }
 
@@ -471,7 +474,7 @@ void GioApplication::DrawBarycentricMappingAlgorithmDialog()
 		if (m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bRunAlgorithm)
 		{
 			ImGui::SameLine();
-			ImGui::Checkbox("Visualize", &m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bVisualizeAlgorithm);
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Open Animation to visualize the algorithm");
 		}
 
 		ImGui::End();
