@@ -2,6 +2,9 @@
 
 #include "IMeshAlgorithm.hpp"
 
+//#define USE_MKL
+#define USE_GEO_NL
+
 namespace MeshAlgorithm
 {
 	// Params:

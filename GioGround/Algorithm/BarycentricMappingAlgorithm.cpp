@@ -3,6 +3,8 @@
 #include "..\HalfedgeMeshWrapper.hpp"
 
 #include <mkl.h>
+#include <geogram/NL/nl.h>
+#include <geogram/NL/nl_mkl.h>
 
 #include <unordered_set>
 #include <functional>
@@ -395,9 +397,86 @@ namespace MeshAlgorithm
 
 		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
 
+		std::function<double(GEO::index_t, GEO::index_t, GEO::index_t, GEO::index_t)> w_ij_Func;
+
+		if (m_CoefficientType == PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[0])
+		{
+			w_ij_Func = std::bind(
+				&BarycentricMappingAlgorithm::w_ij_MeanValueCoordinates,
+				this,
+				pHalfedgeMeshWrapper,
+				std::placeholders::_1,
+				std::placeholders::_2,
+				std::placeholders::_3,
+				std::placeholders::_4
+			);
+		}
+		else if (m_CoefficientType == PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[1])
+		{
+			w_ij_Func = std::bind(
+				&BarycentricMappingAlgorithm::w_ij_DiscreteHarmonicCoordinates,
+				this, pHalfedgeMeshWrapper,
+				std::placeholders::_1,
+				std::placeholders::_2,
+				std::placeholders::_3,
+				std::placeholders::_4
+			);
+
+		}
+		else if (m_CoefficientType == PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[2])
+		{
+			w_ij_Func = std::bind(
+				&BarycentricMappingAlgorithm::w_ij_WachspressCoordinates,
+				this, pHalfedgeMeshWrapper,
+				std::placeholders::_1,
+				std::placeholders::_2,
+				std::placeholders::_3,
+				std::placeholders::_4
+			);
+		}
+		else
+		{
+			/*m_CoefficientType must be in PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE*/
+			assert(false);
+		}
+
 		int n = int(m_nInteriorVertices);
 		int b = int(m_nBoundaryVertices);
 
+		GEO::vector<GEO::vector<double>> w_ij_Lists(n);
+		GEO::vector<double> Sigma_w_ij_Lists(n);
+		GEO::vector<GEO::vector<GEO::index_t>> iAdjVerticesLists(n);
+		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
+		{
+			iAdjVerticesLists[i] = GetAdjacentVertices(pHalfedgeMeshWrapper, m_iInteriorVertices[i]);
+			w_ij_Lists[i].resize(iAdjVerticesLists[i].size());
+
+			double Sigma_w_ij = 0.0;
+
+			for (GEO::index_t j = 0; j < iAdjVerticesLists[i].size(); j++)
+			{
+				GEO::index_t iIBeginCorner = pHalfedgeMeshWrapper->Vertex2Corner[m_iInteriorVertices[i]];
+				GEO::index_t iICorner = iIBeginCorner;
+
+				while (pHalfedgeMeshWrapper->Dest(iICorner) != iAdjVerticesLists[i][j])
+				{
+					iICorner = pHalfedgeMeshWrapper->Corner2Corner[iICorner];
+					/*i and j must be adjacent*/
+					assert(iICorner != iIBeginCorner);
+				}
+
+				GEO::index_t iAlpha_ij_Corner = iICorner;
+				GEO::index_t iAlpha_ji_Corner = pHalfedgeMeshWrapper->Opposite(iICorner);
+
+				double w_ij = w_ij_Func(m_iInteriorVertices[i], iAdjVerticesLists[i][j], iAlpha_ij_Corner, iAlpha_ji_Corner);
+				w_ij_Lists[i][j] = w_ij;
+				Sigma_w_ij += w_ij;
+			}
+
+			Sigma_w_ij_Lists[i] = Sigma_w_ij;
+		}
+
+#ifdef USE_MKL
 		double * A/*Size = n * n*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * n, 64));
 		double * B/*Size = n * 2*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * 2, 64));
 
@@ -407,29 +486,27 @@ namespace MeshAlgorithm
 		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
 		{
 			A[i * n + i] = 1.0;
-			GEO::vector<GEO::index_t> iAdjVertices = GetAdjacentVertices(pHalfedgeMeshWrapper, m_iInteriorVertices[i]);
-			for (GEO::index_t j = 0; j < iAdjVertices.size(); j++)
+			for (GEO::index_t j = 0; j < iAdjVerticesLists[i].size(); j++)
 			{
-				auto Iter = std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), iAdjVertices[j]);
+				auto Iter = std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), iAdjVerticesLists[i][j]);
 				if (Iter != m_iInteriorVertices.end())
 				{
-					double Lambda_ij = Lambda_ij_BarycentricCoordinates(pHalfedgeMeshWrapper, m_iInteriorVertices[i], iAdjVertices[j]);
-					A[i * n + (Iter - m_iInteriorVertices.begin())] = -1.0 * Lambda_ij;
+					double Lambda_ij = w_ij_Lists[i][j] / Sigma_w_ij_Lists[i];
+					GEO::index_t iInteriorIndex = GEO::index_t(Iter - m_iInteriorVertices.begin());
+					A[i * n + iInteriorIndex] = -1.0 * Lambda_ij;
 				}
 			}
 		}
 
 		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
 		{
-			GEO::vector<GEO::index_t> iAdjVertices = GetAdjacentVertices(pHalfedgeMeshWrapper, m_iInteriorVertices[i]);
 			double u = 0.0, v = 0.0;
-			for (GEO::index_t j = 0; j < iAdjVertices.size(); j++)
+			for (GEO::index_t j = 0; j < iAdjVerticesLists[i].size(); j++)
 			{
-				if (IsBoundaryVertex(pHalfedgeMeshWrapper, iAdjVertices[j]))
+				if (IsBoundaryVertex(pHalfedgeMeshWrapper, iAdjVerticesLists[i][j]))
 				{
-					double Lambda_ij = Lambda_ij_BarycentricCoordinates(pHalfedgeMeshWrapper, m_iInteriorVertices[i], iAdjVertices[j]);
-
-					auto Iter = std::find(m_iBoundaryVertices.begin(), m_iBoundaryVertices.end(), iAdjVertices[j]);
+					double Lambda_ij = w_ij_Lists[i][j] / Sigma_w_ij_Lists[i];
+					auto Iter = std::find(m_iBoundaryVertices.begin(), m_iBoundaryVertices.end(), iAdjVerticesLists[i][j]);
 					GEO::index_t iBoundaryIndex = GEO::index_t(Iter - m_iBoundaryVertices.begin());
 					u += Lambda_ij * m_BoundaryVertices[iBoundaryIndex * 3 + 0];
 					v += Lambda_ij * m_BoundaryVertices[iBoundaryIndex * 3 + 1];
@@ -465,6 +542,114 @@ namespace MeshAlgorithm
 			m_InteriorVertices[i * 3 + 0] = B[i * 2 + 0];
 			m_InteriorVertices[i * 3 + 1] = B[i * 2 + 1];
 		}
+
+		mkl_free(A);
+		mkl_free(B);
+#endif
+
+#ifdef USE_GEO_NL
+		GEO::vector<GEO::vector<GEO::index_t>> MatrixAIndices(n);
+		GEO::vector<GEO::vector<double>> MatrixAValues(n);
+		GEO::vector<double> MatrixBU(n);
+		GEO::vector<double> MatrixBV(n);
+		m_InteriorVertices.resize(m_nInteriorVertices * 3, 0.0);
+
+		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
+		{
+			MatrixAIndices[i].push_back(i);
+			MatrixAValues[i].push_back(1.0);
+
+			for (GEO::index_t j = 0; j < iAdjVerticesLists[i].size(); j++)
+			{
+				auto Iter = std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), iAdjVerticesLists[i][j]);
+				if (Iter != m_iInteriorVertices.end())
+				{
+					double Lambda_ij = w_ij_Lists[i][j] / Sigma_w_ij_Lists[i];
+					GEO::index_t iInteriorIndex = GEO::index_t(Iter - m_iInteriorVertices.begin());
+					MatrixAIndices[i].push_back(iInteriorIndex);
+					MatrixAValues[i].push_back(-1.0 * Lambda_ij);
+				}
+			}
+
+			double u = 0.0, v = 0.0;
+			for (GEO::index_t j = 0; j < iAdjVerticesLists[i].size(); j++)
+			{
+				if (IsBoundaryVertex(pHalfedgeMeshWrapper, iAdjVerticesLists[i][j]))
+				{
+					double Lambda_ij = w_ij_Lists[i][j] / Sigma_w_ij_Lists[i];
+					auto Iter = std::find(m_iBoundaryVertices.begin(), m_iBoundaryVertices.end(), iAdjVerticesLists[i][j]);
+					GEO::index_t iBoundaryIndex = GEO::index_t(Iter - m_iBoundaryVertices.begin());
+					u += Lambda_ij * m_BoundaryVertices[iBoundaryIndex * 3 + 0];
+					v += Lambda_ij * m_BoundaryVertices[iBoundaryIndex * 3 + 1];
+				}
+			}
+			MatrixBU[i] = u;
+			MatrixBV[i] = v;
+		}
+
+		nlNewContext();
+		nlSolverParameteri(NL_NB_VARIABLES, n);
+		nlSolverParameteri(NL_SOLVER, NL_SOLVER_DEFAULT);
+
+		nlBegin(NL_SYSTEM);
+		nlBegin(NL_MATRIX);
+
+		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
+		{
+			nlBegin(NL_ROW);
+			for (GEO::index_t j = 0; j < MatrixAIndices[i].size(); j++)
+			{
+				GEO::index_t iIndex = MatrixAIndices[i][j];
+				double Value = MatrixAValues[i][j];
+				nlCoefficient(iIndex, Value);
+			}
+			nlRightHandSide(MatrixBU[i]);
+			nlEnd(NL_ROW);
+		}
+
+		nlEnd(NL_MATRIX);
+		nlEnd(NL_SYSTEM);
+
+		nlSolve();
+		for (GEO::index_t i = 0; i < m_nInteriorVertices; i++)
+		{
+			m_InteriorVertices[i * 3 + 0] = nlGetVariable(i);
+		}
+
+		nlDeleteContext(nlGetCurrent());
+
+		nlNewContext();
+		nlSolverParameteri(NL_NB_VARIABLES, n);
+		nlSolverParameteri(NL_SOLVER, NL_SOLVER_DEFAULT);
+
+		nlBegin(NL_SYSTEM);
+		nlBegin(NL_MATRIX);
+
+		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
+		{
+			nlBegin(NL_ROW);
+			for (GEO::index_t j = 0; j < MatrixAIndices[i].size(); j++)
+			{
+				GEO::index_t iIndex = MatrixAIndices[i][j];
+				double Value = MatrixAValues[i][j];
+				nlCoefficient(iIndex, Value);
+			}
+			nlRightHandSide(MatrixBV[i]);
+			nlEnd(NL_ROW);
+		}
+
+		nlEnd(NL_MATRIX);
+		nlEnd(NL_SYSTEM);
+
+		nlSolve();
+
+		for (GEO::index_t i = 0; i < m_nInteriorVertices; i++)
+		{
+			m_InteriorVertices[i * 3 + 1] = nlGetVariable(i);
+		}
+
+		nlDeleteContext(nlGetCurrent());
+#endif
 	}
 
 	double BarycentricMappingAlgorithm::Lambda_ij_BarycentricCoordinates(
