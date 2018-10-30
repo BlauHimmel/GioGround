@@ -547,11 +547,16 @@ namespace MeshAlgorithm
 #endif
 
 #ifdef USE_PARDISO
+		GEO::vector<MKL_INT> ia;
+		GEO::vector<MKL_INT> ja;
+		GEO::vector<double> a;
+		m_InteriorVertices.resize(m_nInteriorVertices * 3, 0.0);
+
 		double * A/*Size = n * n*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * n, 64));
-		double * B/*Size = n * 2*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * 2, 64));
+		double * b/*Size = n * 2*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * 2, 64));
 
 		memset(A, 0, sizeof(double) * n * n);
-		memset(B, 0, sizeof(double) * n * 2);
+		memset(b, 0, sizeof(double) * n * 2);
 
 		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
 		{
@@ -583,14 +588,9 @@ namespace MeshAlgorithm
 				}
 			}
 
-			B[i * 2 + 0] = u;
-			B[i * 2 + 1] = v;
+			b[0 + i] = u;
+			b[n + i] = v;
 		}
-
-		GEO::vector<MKL_INT> ia;
-		GEO::vector<MKL_INT> ja;
-		GEO::vector<double> a;
-		m_InteriorVertices.resize(m_nInteriorVertices * 3, 0.0);
 
 		GEO::index_t iPrevRow = 0;
 		GEO::index_t iNonZero = 0;
@@ -613,240 +613,116 @@ namespace MeshAlgorithm
 		}
 		ia.push_back(a.size() + 1);
 
+		
+		/*Real unsymmetric matrix*/
+		MKL_INT mtype = 11;
+		/*Descriptor of main sparse matrix properties*/
+		matrix_descr descrA;
+		/*Structure with sparse matrix stored in CSR format*/
+		sparse_matrix_t csrA;
+		sparse_operation_t transA;
+		/*RHS and solution vectors.*/
+		std::unique_ptr<double[]> x(new double[n * 2]);
+		/*Number of right hand sides.*/
+		MKL_INT nrhs = 2;
+		/*Internal solver memory pointer pt,*/
+		/*32-bit: int pt[64]; 64-bit: long int pt[64]*/
+		/*or void *pt[64] should be OK on both architectures*/
+		void * pt[64];
+		/*Pardiso control parameters.*/
+		MKL_INT iparm[64];
+		MKL_INT maxfct, mnum, phase, error, msglvl;
+		/* Auxiliary variables. */
+		MKL_INT i, j;
+		/* Double dummy */
+		double ddum;
+		/* Integer dummy. */
+		MKL_INT idum;
+		/*Setup Pardiso control parameters*/
+		for (i = 0; i < 64; i++) { iparm[i] = 0; }
+		iparm[0] = 1;         /* No solver default */
+		iparm[1] = 2;         /* Fill-in reordering from METIS */
+		iparm[3] = 0;         /* No iterative-direct algorithm */
+		iparm[4] = 0;         /* No user fill-in reducing permutation */
+		iparm[5] = 0;         /* Write solution into x */
+		iparm[6] = 0;         /* Not in use */
+		iparm[7] = 2;         /* Max numbers of iterative refinement steps */
+		iparm[8] = 0;         /* Not in use */
+		iparm[9] = 13;        /* Perturb the pivot elements with 1E-13 */
+		iparm[10] = 1;        /* Use nonsymmetric permutation and scaling MPS */
+		iparm[11] = 0;        /* Conjugate transposed/transpose solve */
+		iparm[12] = 1;        /* Maximum weighted matching algorithm is switched-on (default for non-symmetric) */
+		iparm[13] = 0;        /* Output: Number of perturbed pivots */
+		iparm[14] = 0;        /* Not in use */
+		iparm[15] = 0;        /* Not in use */
+		iparm[16] = 0;        /* Not in use */
+		iparm[17] = -1;       /* Output: Number of nonzeros in the factor LU */
+		iparm[18] = -1;       /* Output: Mflops for LU factorization */
+		iparm[19] = 0;        /* Output: Numbers of CG Iterations */
+		maxfct = 1;           /* Maximum number of numerical factorizations. */
+		mnum = 1;             /* Which factorization to use. */
+		msglvl = 0;           /* Print statistical information  */
+		error = 0;            /* Initialize error flag */
+
+		/*Initialize the internal solver memory pointer. This is only*/
+		/*necessary for the FIRST call of the PARDISO solver.*/
+		for (i = 0; i < 64; i++) { pt[i] = 0; }
+
+		/*Reordering and Symbolic Factorization. This step also allocates*/
+		/*all memory that is necessary for the factorization.*/
+		phase = 11;
+		PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+			&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
+		if (error != 0)
 		{
-			/*Real unsymmetric matrix*/
-			MKL_INT mtype = 11;
-			/*Descriptor of main sparse matrix properties*/
-			matrix_descr descrA;
-			/*Structure with sparse matrix stored in CSR format*/
-			sparse_matrix_t csrA;
-			sparse_operation_t transA;
-			/*RHS and solution vectors.*/
-			std::unique_ptr<double[]> b(new double[n]);
-			std::unique_ptr<double[]> bs(new double[n]);
-			std::unique_ptr<double[]> x(new double[n]);
-			double res, res0;
-			/*Number of right hand sides.*/
-			MKL_INT nrhs = 1;
-			/*Internal solver memory pointer pt,*/
-			/*32-bit: int pt[64]; 64-bit: long int pt[64]*/
-			/*or void *pt[64] should be OK on both architectures*/
-			void * pt[64];
-			/*Pardiso control parameters.*/
-			MKL_INT iparm[64];
-			MKL_INT maxfct, mnum, phase, error, msglvl;
-			/* Auxiliary variables. */
-			MKL_INT i, j;
-			/* Double dummy */
-			double ddum;
-			/* Integer dummy. */
-			MKL_INT idum;
-			/*Setup Pardiso control parameters*/
-			for (i = 0; i < 64; i++) { iparm[i] = 0; }
-			iparm[0] = 1;         /* No solver default */
-			iparm[1] = 2;         /* Fill-in reordering from METIS */
-			iparm[3] = 0;         /* No iterative-direct algorithm */
-			iparm[4] = 0;         /* No user fill-in reducing permutation */
-			iparm[5] = 0;         /* Write solution into x */
-			iparm[6] = 0;         /* Not in use */
-			iparm[7] = 2;         /* Max numbers of iterative refinement steps */
-			iparm[8] = 0;         /* Not in use */
-			iparm[9] = 13;        /* Perturb the pivot elements with 1E-13 */
-			iparm[10] = 1;        /* Use nonsymmetric permutation and scaling MPS */
-			iparm[11] = 0;        /* Conjugate transposed/transpose solve */
-			iparm[12] = 1;        /* Maximum weighted matching algorithm is switched-on (default for non-symmetric) */
-			iparm[13] = 0;        /* Output: Number of perturbed pivots */
-			iparm[14] = 0;        /* Not in use */
-			iparm[15] = 0;        /* Not in use */
-			iparm[16] = 0;        /* Not in use */
-			iparm[17] = -1;       /* Output: Number of nonzeros in the factor LU */
-			iparm[18] = -1;       /* Output: Mflops for LU factorization */
-			iparm[19] = 0;        /* Output: Numbers of CG Iterations */
-			maxfct = 1;           /* Maximum number of numerical factorizations. */
-			mnum = 1;             /* Which factorization to use. */
-			msglvl = 0;           /* Print statistical information  */
-			error = 0;            /* Initialize error flag */
-
-			/*Initialize the internal solver memory pointer. This is only*/
-			/*necessary for the FIRST call of the PARDISO solver.*/
-			for (i = 0; i < 64; i++) { pt[i] = 0; }
-
-			/*Reordering and Symbolic Factorization. This step also allocates*/
-			/*all memory that is necessary for the factorization.*/
-			phase = 11;
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
-			if (error != 0)
-			{
-				GEO::Logger::err("Barycentric") << "ERROR during symbolic factorization: " << error << std::endl;
-			}
-
-			/*Numerical factorization.*/
-			phase = 22;
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
-			if (error != 0)
-			{
-				GEO::Logger::err("Barycentric") << "ERROR during numerical factorization: " << error << std::endl;
-			}
-
-			phase = 33;
-
-			/*Back substitution and iterative refinement.*/
-			descrA.type = SPARSE_MATRIX_TYPE_GENERAL;
-			descrA.mode = SPARSE_FILL_MODE_UPPER;
-			descrA.diag = SPARSE_DIAG_NON_UNIT;
-			mkl_sparse_d_create_csr(&csrA, SPARSE_INDEX_BASE_ONE, n, n, ia.data(), ia.data() + 1, ja.data(), a.data());
-
-			/* Set right hand side*/
-			for (i = 0; i < n; i++)
-			{
-				b[i] = B[i * 2 + 0];
-			}
-
-			iparm[11] = 0;
-			transA = SPARSE_OPERATION_NON_TRANSPOSE;
-
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, b.get(), x.get(), &error);
-
-			if (error != 0)
-			{
-				GEO::Logger::err("Barycentric") << "ERROR during solution: " << error << std::endl;
-			}
-
-			for (j = 0; j < n; j++)
-			{
-				m_InteriorVertices[j * 3 + 0] = x[j];
-			}
-
-			mkl_sparse_destroy(csrA);
-
-			/*Termination and release of memory.*/
-			phase = -1;
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, &ddum, ia.data(), ja.data(), &idum, &nrhs,
-				iparm, &msglvl, &ddum, &ddum, &error);
+			GEO::Logger::err("Barycentric") << "ERROR during symbolic factorization: " << error << std::endl;
 		}
 
+		/*Numerical factorization.*/
+		phase = 22;
+		PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+			&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
+		if (error != 0)
 		{
-			/*Real unsymmetric matrix*/
-			MKL_INT mtype = 11;
-			/*Descriptor of main sparse matrix properties*/
-			matrix_descr descrA;
-			/*Structure with sparse matrix stored in CSR format*/
-			sparse_matrix_t csrA;
-			sparse_operation_t transA;
-			/*RHS and solution vectors.*/
-			std::unique_ptr<double[]> b(new double[n]);
-			std::unique_ptr<double[]> bs(new double[n]);
-			std::unique_ptr<double[]> x(new double[n]);
-			double res, res0;
-			/*Number of right hand sides.*/
-			MKL_INT nrhs = 1;
-			/*Internal solver memory pointer pt,*/
-			/*32-bit: int pt[64]; 64-bit: long int pt[64]*/
-			/*or void *pt[64] should be OK on both architectures*/
-			void * pt[64];
-			/*Pardiso control parameters.*/
-			MKL_INT iparm[64];
-			MKL_INT maxfct, mnum, phase, error, msglvl;
-			/* Auxiliary variables. */
-			MKL_INT i, j;
-			/* Double dummy */
-			double ddum;
-			/* Integer dummy. */
-			MKL_INT idum;
-			/*Setup Pardiso control parameters*/
-			for (i = 0; i < 64; i++) { iparm[i] = 0; }
-			iparm[0] = 1;         /* No solver default */
-			iparm[1] = 2;         /* Fill-in reordering from METIS */
-			iparm[3] = 0;         /* No iterative-direct algorithm */
-			iparm[4] = 0;         /* No user fill-in reducing permutation */
-			iparm[5] = 0;         /* Write solution into x */
-			iparm[6] = 0;         /* Not in use */
-			iparm[7] = 2;         /* Max numbers of iterative refinement steps */
-			iparm[8] = 0;         /* Not in use */
-			iparm[9] = 13;        /* Perturb the pivot elements with 1E-13 */
-			iparm[10] = 1;        /* Use nonsymmetric permutation and scaling MPS */
-			iparm[11] = 0;        /* Conjugate transposed/transpose solve */
-			iparm[12] = 1;        /* Maximum weighted matching algorithm is switched-on (default for non-symmetric) */
-			iparm[13] = 0;        /* Output: Number of perturbed pivots */
-			iparm[14] = 0;        /* Not in use */
-			iparm[15] = 0;        /* Not in use */
-			iparm[16] = 0;        /* Not in use */
-			iparm[17] = -1;       /* Output: Number of nonzeros in the factor LU */
-			iparm[18] = -1;       /* Output: Mflops for LU factorization */
-			iparm[19] = 0;        /* Output: Numbers of CG Iterations */
-			maxfct = 1;           /* Maximum number of numerical factorizations. */
-			mnum = 1;             /* Which factorization to use. */
-			msglvl = 0;           /* Print statistical information  */
-			error = 0;            /* Initialize error flag */
-
-								  /*Initialize the internal solver memory pointer. This is only*/
-								  /*necessary for the FIRST call of the PARDISO solver.*/
-			for (i = 0; i < 64; i++) { pt[i] = 0; }
-
-			/*Reordering and Symbolic Factorization. This step also allocates*/
-			/*all memory that is necessary for the factorization.*/
-			phase = 11;
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
-			if (error != 0)
-			{
-				GEO::Logger::err("Barycentric") << "ERROR during symbolic factorization: " << error << std::endl;
-			}
-
-			/*Numerical factorization.*/
-			phase = 22;
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
-			if (error != 0)
-			{
-				GEO::Logger::err("Barycentric") << "ERROR during numerical factorization: " << error << std::endl;
-			}
-
-			phase = 33;
-
-			/*Back substitution and iterative refinement.*/
-			descrA.type = SPARSE_MATRIX_TYPE_GENERAL;
-			descrA.mode = SPARSE_FILL_MODE_UPPER;
-			descrA.diag = SPARSE_DIAG_NON_UNIT;
-			mkl_sparse_d_create_csr(&csrA, SPARSE_INDEX_BASE_ONE, n, n, ia.data(), ia.data() + 1, ja.data(), a.data());
-
-			/* Set right hand side*/
-			for (i = 0; i < n; i++)
-			{
-				b[i] = B[i * 2 + 1];
-			}
-
-			iparm[11] = 0;
-			transA = SPARSE_OPERATION_NON_TRANSPOSE;
-
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, b.get(), x.get(), &error);
-
-			if (error != 0)
-			{
-				GEO::Logger::err("Barycentric") << "ERROR during solution: " << error << std::endl;
-			}
-
-			for (j = 0; j < n; j++)
-			{
-				m_InteriorVertices[j * 3 + 1] = x[j];
-			}
-
-			mkl_sparse_destroy(csrA);
-
-			/*Termination and release of memory.*/
-			phase = -1;
-			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, &ddum, ia.data(), ja.data(), &idum, &nrhs,
-				iparm, &msglvl, &ddum, &ddum, &error);
+			GEO::Logger::err("Barycentric") << "ERROR during numerical factorization: " << error << std::endl;
 		}
+
+		phase = 33;
+
+		/*Back substitution and iterative refinement.*/
+		descrA.type = SPARSE_MATRIX_TYPE_GENERAL;
+		descrA.mode = SPARSE_FILL_MODE_UPPER;
+		descrA.diag = SPARSE_DIAG_NON_UNIT;
+		mkl_sparse_d_create_csr(&csrA, SPARSE_INDEX_BASE_ONE, n, n, ia.data(), ia.data() + 1, ja.data(), a.data());
+
+		iparm[11] = 0;
+		transA = SPARSE_OPERATION_NON_TRANSPOSE;
+
+		PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+			&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, b, x.get(), &error);
+
+		if (error != 0)
+		{
+			GEO::Logger::err("Barycentric") << "ERROR during solution: " << error << std::endl;
+		}
+
+		for (j = 0; j < n; j++)
+		{
+			m_InteriorVertices[j * 3 + 0] = x[0 + j];
+			m_InteriorVertices[j * 3 + 1] = x[n + j];
+		}
+
+		mkl_sparse_destroy(csrA);
+
+		/*Termination and release of memory.*/
+		phase = -1;
+		PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+			&n, &ddum, ia.data(), ja.data(), &idum, &nrhs,
+			iparm, &msglvl, &ddum, &ddum, &error);
+		
 
 		mkl_free(A);
-		mkl_free(B);
+		mkl_free(b);
 #endif
 
 #ifdef USE_GEO_NL
