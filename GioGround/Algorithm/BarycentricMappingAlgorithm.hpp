@@ -3,8 +3,8 @@
 #include "IMeshAlgorithm.hpp"
 
 //#define USE_MKL
-//#define USE_PARDISO
-#define USE_GEO_NL
+#define USE_PARDISO
+//#define USE_GEO_NL
 
 namespace MeshAlgorithm
 {

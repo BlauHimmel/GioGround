@@ -587,9 +587,9 @@ namespace MeshAlgorithm
 			B[i * 2 + 1] = v;
 		}
 
-		GEO::vector<MKL_INT> IA;
-		GEO::vector<MKL_INT> JA;
-		GEO::vector<double> SaprseA;
+		GEO::vector<MKL_INT> ia;
+		GEO::vector<MKL_INT> ja;
+		GEO::vector<double> a;
 		m_InteriorVertices.resize(m_nInteriorVertices * 3, 0.0);
 
 		GEO::index_t iPrevRow = 0;
@@ -601,17 +601,17 @@ namespace MeshAlgorithm
 				iNonZero++;
 				GEO::index_t iRow = i / n + 1;
 				GEO::index_t iCol = i % n + 1;
-				SaprseA.push_back(A[i]);
-				JA.push_back(iCol);
+				a.push_back(A[i]);
+				ja.push_back(iCol);
 
 				if (iRow - iPrevRow == 1)
 				{
 					iPrevRow = iRow;
-					IA.push_back(iNonZero);
+					ia.push_back(iNonZero);
 				}
 			}
 		}
-		IA.push_back(SaprseA.size() + 1);
+		ia.push_back(a.size() + 1);
 
 		{
 			/*Real unsymmetric matrix*/
@@ -623,7 +623,9 @@ namespace MeshAlgorithm
 			sparse_operation_t transA;
 			/*RHS and solution vectors.*/
 			std::unique_ptr<double[]> b(new double[n]);
+			std::unique_ptr<double[]> bs(new double[n]);
 			std::unique_ptr<double[]> x(new double[n]);
+			double res, res0;
 			/*Number of right hand sides.*/
 			MKL_INT nrhs = 1;
 			/*Internal solver memory pointer pt,*/
@@ -673,9 +675,7 @@ namespace MeshAlgorithm
 			/*all memory that is necessary for the factorization.*/
 			phase = 11;
 			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, SaprseA.data(), IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error
-			);
+				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
 			if (error != 0)
 			{
 				GEO::Logger::err("Barycentric") << "ERROR during symbolic factorization: " << error << std::endl;
@@ -684,19 +684,19 @@ namespace MeshAlgorithm
 			/*Numerical factorization.*/
 			phase = 22;
 			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, SaprseA.data(), IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error
-			);
+				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
 			if (error != 0)
 			{
 				GEO::Logger::err("Barycentric") << "ERROR during numerical factorization: " << error << std::endl;
 			}
 
+			phase = 33;
+
 			/*Back substitution and iterative refinement.*/
 			descrA.type = SPARSE_MATRIX_TYPE_GENERAL;
 			descrA.mode = SPARSE_FILL_MODE_UPPER;
 			descrA.diag = SPARSE_DIAG_NON_UNIT;
-			mkl_sparse_d_create_csr(&csrA, SPARSE_INDEX_BASE_ONE, n, n, IA.data(), IA.data() + 1, JA.data(), SaprseA.data());
+			mkl_sparse_d_create_csr(&csrA, SPARSE_INDEX_BASE_ONE, n, n, ia.data(), ia.data() + 1, ja.data(), a.data());
 
 			/* Set right hand side*/
 			for (i = 0; i < n; i++)
@@ -704,12 +704,12 @@ namespace MeshAlgorithm
 				b[i] = B[i * 2 + 0];
 			}
 
+			iparm[11] = 0;
 			transA = SPARSE_OPERATION_NON_TRANSPOSE;
 
 			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, SaprseA.data(), IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, b.get(), x.get(), &error
-			);
+				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, b.get(), x.get(), &error);
+
 			if (error != 0)
 			{
 				GEO::Logger::err("Barycentric") << "ERROR during solution: " << error << std::endl;
@@ -724,10 +724,9 @@ namespace MeshAlgorithm
 
 			/*Termination and release of memory.*/
 			phase = -1;
-			PARDISO(pt, &maxfct, &mnum, &mtype,
-				&phase, &n, &ddum, IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error
-			);
+			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+				&n, &ddum, ia.data(), ja.data(), &idum, &nrhs,
+				iparm, &msglvl, &ddum, &ddum, &error);
 		}
 
 		{
@@ -740,7 +739,9 @@ namespace MeshAlgorithm
 			sparse_operation_t transA;
 			/*RHS and solution vectors.*/
 			std::unique_ptr<double[]> b(new double[n]);
+			std::unique_ptr<double[]> bs(new double[n]);
 			std::unique_ptr<double[]> x(new double[n]);
+			double res, res0;
 			/*Number of right hand sides.*/
 			MKL_INT nrhs = 1;
 			/*Internal solver memory pointer pt,*/
@@ -782,17 +783,15 @@ namespace MeshAlgorithm
 			msglvl = 0;           /* Print statistical information  */
 			error = 0;            /* Initialize error flag */
 
-			/*Initialize the internal solver memory pointer. This is only*/
-			/*necessary for the FIRST call of the PARDISO solver.*/
+								  /*Initialize the internal solver memory pointer. This is only*/
+								  /*necessary for the FIRST call of the PARDISO solver.*/
 			for (i = 0; i < 64; i++) { pt[i] = 0; }
 
 			/*Reordering and Symbolic Factorization. This step also allocates*/
 			/*all memory that is necessary for the factorization.*/
 			phase = 11;
 			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, SaprseA.data(), IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error
-			);
+				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
 			if (error != 0)
 			{
 				GEO::Logger::err("Barycentric") << "ERROR during symbolic factorization: " << error << std::endl;
@@ -801,19 +800,19 @@ namespace MeshAlgorithm
 			/*Numerical factorization.*/
 			phase = 22;
 			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, SaprseA.data(), IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error
-			);
+				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
 			if (error != 0)
 			{
 				GEO::Logger::err("Barycentric") << "ERROR during numerical factorization: " << error << std::endl;
 			}
 
+			phase = 33;
+
 			/*Back substitution and iterative refinement.*/
 			descrA.type = SPARSE_MATRIX_TYPE_GENERAL;
 			descrA.mode = SPARSE_FILL_MODE_UPPER;
 			descrA.diag = SPARSE_DIAG_NON_UNIT;
-			mkl_sparse_d_create_csr(&csrA, SPARSE_INDEX_BASE_ONE, n, n, IA.data(), IA.data() + 1, JA.data(), SaprseA.data());
+			mkl_sparse_d_create_csr(&csrA, SPARSE_INDEX_BASE_ONE, n, n, ia.data(), ia.data() + 1, ja.data(), a.data());
 
 			/* Set right hand side*/
 			for (i = 0; i < n; i++)
@@ -821,12 +820,12 @@ namespace MeshAlgorithm
 				b[i] = B[i * 2 + 1];
 			}
 
+			iparm[11] = 0;
 			transA = SPARSE_OPERATION_NON_TRANSPOSE;
 
 			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-				&n, SaprseA.data(), IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, b.get(), x.get(), &error
-			);
+				&n, a.data(), ia.data(), ja.data(), &idum, &nrhs, iparm, &msglvl, b.get(), x.get(), &error);
+
 			if (error != 0)
 			{
 				GEO::Logger::err("Barycentric") << "ERROR during solution: " << error << std::endl;
@@ -841,10 +840,9 @@ namespace MeshAlgorithm
 
 			/*Termination and release of memory.*/
 			phase = -1;
-			PARDISO(pt, &maxfct, &mnum, &mtype,
-				&phase, &n, &ddum, IA.data(), JA.data(),
-				&idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error
-			);
+			PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+				&n, &ddum, ia.data(), ja.data(), &idum, &nrhs,
+				iparm, &msglvl, &ddum, &ddum, &error);
 		}
 
 		mkl_free(A);
