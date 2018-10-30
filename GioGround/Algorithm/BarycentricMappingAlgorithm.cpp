@@ -552,15 +552,18 @@ namespace MeshAlgorithm
 		GEO::vector<double> a;
 		m_InteriorVertices.resize(m_nInteriorVertices * 3, 0.0);
 
-		double * A/*Size = n * n*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * n, 64));
+		double * A/*Size = n * n*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n, 64));
 		double * b/*Size = n * 2*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * 2, 64));
 
-		memset(A, 0, sizeof(double) * n * n);
+		memset(A, 0, sizeof(double) * n);
 		memset(b, 0, sizeof(double) * n * 2);
+
+		GEO::index_t iNonZero = 0;
+		GEO::index_t iPrevRow = 0;
 
 		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
 		{
-			A[i * n + i] = 1.0;
+			A[i] = 1.0;
 			for (GEO::index_t j = 0; j < iAdjVerticesLists[i].size(); j++)
 			{
 				auto Iter = std::find(m_iInteriorVertices.begin(), m_iInteriorVertices.end(), iAdjVerticesLists[i][j]);
@@ -568,10 +571,32 @@ namespace MeshAlgorithm
 				{
 					double Lambda_ij = w_ij_Lists[i][j] / Sigma_w_ij_Lists[i];
 					GEO::index_t iInteriorIndex = GEO::index_t(Iter - m_iInteriorVertices.begin());
-					A[i * n + iInteriorIndex] = -1.0 * Lambda_ij;
+					A[iInteriorIndex] = -1.0 * Lambda_ij;
+				}
+			}
+
+			for (GEO::index_t j = 0; j < GEO::index_t(n); j++)
+			{
+				if (A[j] != 0.0)
+				{
+					iNonZero++;
+					GEO::index_t iRow = i + 1;
+					GEO::index_t iCol = j + 1;
+					a.push_back(A[j]);
+					A[j] = 0;
+					ja.push_back(iCol);
+
+					if (iRow - iPrevRow == 1)
+					{
+						iPrevRow = iRow;
+						ia.push_back(iNonZero);
+					}
 				}
 			}
 		}
+		ia.push_back(a.size() + 1);
+
+		mkl_free(A);
 
 		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
 		{
@@ -591,28 +616,6 @@ namespace MeshAlgorithm
 			b[0 + i] = u;
 			b[n + i] = v;
 		}
-
-		GEO::index_t iPrevRow = 0;
-		GEO::index_t iNonZero = 0;
-		for (GEO::index_t i = 0; i < GEO::index_t(n * n); i++)
-		{
-			if (A[i] != 0.0)
-			{
-				iNonZero++;
-				GEO::index_t iRow = i / n + 1;
-				GEO::index_t iCol = i % n + 1;
-				a.push_back(A[i]);
-				ja.push_back(iCol);
-
-				if (iRow - iPrevRow == 1)
-				{
-					iPrevRow = iRow;
-					ia.push_back(iNonZero);
-				}
-			}
-		}
-		ia.push_back(a.size() + 1);
-
 		
 		/*Real unsymmetric matrix*/
 		MKL_INT mtype = 11;
@@ -719,9 +722,7 @@ namespace MeshAlgorithm
 		PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
 			&n, &ddum, ia.data(), ja.data(), &idum, &nrhs,
 			iparm, &msglvl, &ddum, &ddum, &error);
-		
 
-		mkl_free(A);
 		mkl_free(b);
 #endif
 
