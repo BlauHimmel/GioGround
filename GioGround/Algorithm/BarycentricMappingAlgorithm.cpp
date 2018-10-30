@@ -445,8 +445,11 @@ namespace MeshAlgorithm
 		GEO::vector<GEO::vector<double>> w_ij_Lists(n);
 		GEO::vector<double> Sigma_w_ij_Lists(n);
 		GEO::vector<GEO::vector<GEO::index_t>> iAdjVerticesLists(n);
-		for (GEO::index_t i = 0; i < GEO::index_t(n); i++)
+
+		#pragma omp parallel for
+		for (int x = 0; x < n; x++)
 		{
+			GEO::index_t i = GEO::index_t(x);
 			iAdjVerticesLists[i] = GetAdjacentVertices(pHalfedgeMeshWrapper, m_iInteriorVertices[i]);
 			w_ij_Lists[i].resize(iAdjVerticesLists[i].size());
 
