@@ -555,7 +555,7 @@ namespace MeshAlgorithm
 		GEO::vector<double> a;
 		m_InteriorVertices.resize(m_nInteriorVertices * 3, 0.0);
 
-		double * A/*Size = n * n*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n, 64));
+		double * A/*Size = n * 1*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n, 64));
 		double * b/*Size = n * 2*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * n * 2, 64));
 
 		memset(A, 0, sizeof(double) * n);
