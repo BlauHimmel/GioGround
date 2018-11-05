@@ -164,6 +164,7 @@ void GioApplication::init_graphics()
 	m_Algorithms.resize(ALGORITHM_NUMBER);
 	m_Algorithms[CUT_MESH_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::MeshCutAlgorithm>();
 	m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::BarycentricMappingAlgorithm>();
+	m_Algorithms[LSCM_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::LSCMAlgorithm>();
 }
 
 void GioApplication::draw_gui()
@@ -324,6 +325,7 @@ void GioApplication::draw_application_menus()
 		
 		ImGui::MenuItem("Slice Mesh", nullptr, &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog);
 		ImGui::MenuItem("Barycentric Mapping", nullptr, &m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog);
+		ImGui::MenuItem("LSCM", nullptr, &m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog);
 		ImGui::EndMenu();
 	}
 
@@ -334,6 +336,7 @@ void GioApplication::DrawAlgorithmDialog()
 {
 	DrawMeshCutAlgorithmDialog();
 	DrawBarycentricMappingAlgorithmDialog();
+	DrawLSCMAlgorithmDialog();
 }
 
 void GioApplication::CloseAlgorithmDialog()
@@ -341,6 +344,7 @@ void GioApplication::CloseAlgorithmDialog()
 	m_iCurrentAlgorithm = size_t(-1);
 	CloseMeshCutAlgorithmDialog();
 	CloseBarycentricMappingAlgorithmDialog();
+	CloseLSCMAlgorithmDialog();
 }
 
 void GioApplication::DrawMeshCutAlgorithmDialog()
@@ -493,6 +497,68 @@ void GioApplication::CloseBarycentricMappingAlgorithmDialog()
 		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bRunAlgorithm = false;
 		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
 		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog = false;
+	}
+}
+
+void GioApplication::DrawLSCMAlgorithmDialog()
+{
+	if (m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog)
+	{
+		m_iCurrentAlgorithm = LSCM_ALGORITHM_INDEX;
+
+		ImGui::Begin("LSCM", &m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+
+		static bool bFailure = false;
+		if (ImGui::Button("Run Algorithm"))
+		{
+			if (m_Algorithms[LSCM_ALGORITHM_INDEX].MeshAlgorithm->Execute(&mesh_))
+			{
+				m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm = true;
+				bFailure = false;
+			}
+			else
+			{
+				ImGui::OpenPopup("Error##LSCM");
+				bFailure = true;
+			}
+		}
+
+		if (bFailure)
+		{
+			if (ImGui::BeginPopupModal("Error##LSCM"), ImGuiWindowFlags_AlwaysAutoResize)
+			{
+				ImGui::Text("Some errors occurred. Input mesh must have 1 boundary and 0 genus!");
+				if (ImGui::Button("OK", ImVec2(120, 0)))
+				{
+					ImGui::CloseCurrentPopup();
+					bFailure = false;
+				}
+				ImGui::EndPopup();
+			}
+		}
+
+		if (m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm)
+		{
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Open Animation to visualize the algorithm");
+		}
+
+		ImGui::End();
+	}
+	else
+	{
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm = false;
+	}
+}
+
+void GioApplication::CloseLSCMAlgorithmDialog()
+{
+	if (m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog)
+	{
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm = false;
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog = false;
 	}
 }
 

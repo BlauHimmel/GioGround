@@ -20,6 +20,7 @@
 #include <MeshGenerator.hpp>
 #include <Algorithm\MeshCutAlgorithm.hpp>
 #include <Algorithm\BarycentricMappingAlgorithm.hpp>
+#include <Algorithm\LSCMAlgorithm.hpp>
 
 extern class GioApplication * g_pApp;
 
@@ -49,9 +50,10 @@ protected:
 	std::vector<Algorithm> m_Algorithms;
 	size_t m_iCurrentAlgorithm = size_t(-1);
 
-	const size_t ALGORITHM_NUMBER = 2;
+	const size_t ALGORITHM_NUMBER = 3;
 	const size_t CUT_MESH_ALGORITHM_INDEX = 0;
 	const size_t BARYCENTRIC_MAPPING_ALGORITHM_INDEX = 1;
+	const size_t LSCM_ALGORITHM_INDEX = 2;
 
 public:
 	GioApplication(int argc, char ** argv);
@@ -76,6 +78,9 @@ private:
 
 	void DrawBarycentricMappingAlgorithmDialog();
 	void CloseBarycentricMappingAlgorithmDialog();
+
+	void DrawLSCMAlgorithmDialog();
+	void CloseLSCMAlgorithmDialog();
 };
 
 GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event);
