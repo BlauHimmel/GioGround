@@ -1,7 +1,5 @@
 #include "GioApplication.hpp"
 
-static MeshAlgorithm::MeshCutAlgorithm MeshCut;
-
 GioApplication::GioApplication(int argc, char ** argv) : GEO::SimpleMeshApplication(argc, argv, "")
 {
 
@@ -16,6 +14,7 @@ void GioApplication::draw_scene()
 
 	if (glup_viewer_is_enabled(GLUP_VIEWER_IDLE_REDRAW))
 	{
+		mesh_gfx_.set_animate(true);
 		anim_time_ = float(sin(double(anim_speed_) * GEO::SystemStopwatch::now()));
 		anim_time_ = 0.5f * (anim_time_ + 1.0f);
 	}
@@ -68,7 +67,7 @@ void GioApplication::draw_scene()
 	{
 		float specular_backup = glupGetSpecular();
 		glupSetSpecular(0.4f);
-		mesh_gfx_.draw_surface();
+		mesh_gfx_.draw_surface(); 
 		glupSetSpecular(specular_backup);
 	}
 
@@ -133,9 +132,24 @@ void GioApplication::draw_scene()
 		glupEnd();
 	}
 
-	if (m_bVisualizeAlgorithm && m_MeshAlgorithm != nullptr)
+	if (m_bSelectingVertex && m_iSelectedVertex != GEO::NO_VERTEX)
 	{
-		m_MeshAlgorithm->Visualize(&mesh_);
+		double * pVertex = mesh_.vertices.point_ptr(m_iSelectedVertex);
+
+		GLUPfloat PointSize = 8.0;
+		GEO::vec4f PointColor(0.0f, 1.0f, 0.0f, 1.0f);
+
+		glupSetPointSize(PointSize);
+		glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, PointColor.data());
+
+		glupBegin(GLUP_POINTS);
+		glupVertex3d(pVertex[0], pVertex[1], pVertex[2]);
+		glupEnd();
+	}
+	
+	if (m_iCurrentAlgorithm != size_t(-1) && m_Algorithms[m_iCurrentAlgorithm].bVisualizeAlgorithm && m_Algorithms[m_iCurrentAlgorithm].MeshAlgorithm != nullptr)
+	{
+		m_Algorithms[m_iCurrentAlgorithm].MeshAlgorithm->Visualize(&mesh_);
 	}
 }
 
@@ -146,6 +160,10 @@ void GioApplication::init_graphics()
 	glup_viewer_set_mouse_func(MouseCallbackFunc);
 	retina_mode_ = false;
 	scaling_ = 1.0f;
+
+	m_Algorithms.resize(ALGORITHM_NUMBER);
+	m_Algorithms[CUT_MESH_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::MeshCutAlgorithm>();
+	m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::BarycentricMappingAlgorithm>();
 }
 
 void GioApplication::draw_gui()
@@ -287,6 +305,12 @@ bool GioApplication::load(const std::string & Filename)
 	return bResult;
 }
 
+bool GioApplication::save(const std::string & Filename)
+{
+	bool bResult = GEO::SimpleMeshApplication::save(Filename);
+	return bResult;
+}
+
 int GioApplication::PANE_WIDTH() const
 {
 	return int(180 * scaling());;
@@ -296,7 +320,10 @@ void GioApplication::draw_application_menus()
 {
 	if (ImGui::BeginMenu("Algorithm"))
 	{
-		ImGui::MenuItem("Slice Mesh", nullptr, &m_bShowMeshCutAlgorithmDialog);
+		CloseAlgorithmDialog();
+		
+		ImGui::MenuItem("Slice Mesh", nullptr, &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog);
+		ImGui::MenuItem("Barycentric Mapping", nullptr, &m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog);
 		ImGui::EndMenu();
 	}
 
@@ -306,23 +333,23 @@ void GioApplication::draw_application_menus()
 void GioApplication::DrawAlgorithmDialog()
 {
 	DrawMeshCutAlgorithmDialog();
+	DrawBarycentricMappingAlgorithmDialog();
 }
 
 void GioApplication::CloseAlgorithmDialog()
 {
+	m_iCurrentAlgorithm = size_t(-1);
 	CloseMeshCutAlgorithmDialog();
+	CloseBarycentricMappingAlgorithmDialog();
 }
 
 void GioApplication::DrawMeshCutAlgorithmDialog()
 {
-	if (m_bShowMeshCutAlgorithmDialog)
+	if (m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog)
 	{
-		if (m_MeshAlgorithm == nullptr)
-		{
-			m_MeshAlgorithm.reset(new MeshAlgorithm::MeshCutAlgorithm());
-		}
+		m_iCurrentAlgorithm = CUT_MESH_ALGORITHM_INDEX;
 
-		ImGui::Begin("Cut Mesh", &m_bShowMeshCutAlgorithmDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+		ImGui::Begin("Cut Mesh", &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
 		ImGui::Text("This algorithm cut an input mesh so that the mesh has only one boundary.");
 		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Note: Dose no effect on the mesh that has 0 boundary and 0 genus.\n");
@@ -340,24 +367,23 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 		if (ImGui::Button("Run Algorithm"))
 		{
 			GEO::index_t StartFacet = (m_iSelectedFacet == GEO::NO_FACET ? 0 : m_iSelectedFacet);
-			m_MeshAlgorithm->PutArg(MeshAlgorithm::MeshCutAlgorithm::PARAMS_KEY_START_FACET, StartFacet);
-			m_MeshAlgorithm->Execute(&mesh_);
-			m_bRunAlgorithm = true;
+			m_Algorithms[CUT_MESH_ALGORITHM_INDEX].MeshAlgorithm->PutArg(MeshAlgorithm::MeshCutAlgorithm::PARAMS_KEY_START_FACET, StartFacet);
+			m_Algorithms[CUT_MESH_ALGORITHM_INDEX].MeshAlgorithm->Execute(&mesh_);
+			m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bRunAlgorithm = true;
 		}
 
-		if (m_bRunAlgorithm)
+		if (m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bRunAlgorithm)
 		{
 			ImGui::SameLine();
-			ImGui::Checkbox("Visualize", &m_bVisualizeAlgorithm);
+			ImGui::Checkbox("Visualize", &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bVisualizeAlgorithm);
 		}
 
 		ImGui::End();
 	}
 	else
 	{
-		m_MeshAlgorithm.release();
-		m_bRunAlgorithm = false;
-		m_bVisualizeAlgorithm = false;
+		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bRunAlgorithm = false;
+		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
 		m_bSelectingFacet = false;
 		m_iSelectedFacet = GEO::NO_FACET;
 	}
@@ -365,15 +391,108 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 void GioApplication::CloseMeshCutAlgorithmDialog()
 {
-	if (m_bShowMeshCutAlgorithmDialog)
+	if (m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog)
 	{
-		m_MeshAlgorithm.release();
-		m_bRunAlgorithm = false;
-		m_bVisualizeAlgorithm = false;
+		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bRunAlgorithm = false;
+		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog = false;
+
 		m_bSelectingFacet = false;
 		m_iSelectedFacet = GEO::NO_FACET;
+	}
+}
 
-		m_bShowMeshCutAlgorithmDialog = false;
+void GioApplication::DrawBarycentricMappingAlgorithmDialog()
+{
+	if (m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog)
+	{
+		m_iCurrentAlgorithm = BARYCENTRIC_MAPPING_ALGORITHM_INDEX;
+
+		ImGui::Begin("Barycentric Mapping", &m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+		std::vector<const char*> CoefficientTypes;
+		for (size_t i = 0; i < IM_ARRAYSIZE(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE); i++)
+		{
+			CoefficientTypes.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_COEFFICIENT_TYPE[i].c_str());
+		}
+
+		static int iCoefficientTypesIdx = 0;
+		ImGui::Combo("Coefficient Type", &iCoefficientTypesIdx, CoefficientTypes.data(), int(CoefficientTypes.size()));
+
+		std::vector<const char*> DomainShapes;
+		for (size_t i = 0; i < IM_ARRAYSIZE(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE); i++)
+		{
+			DomainShapes.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_DOMAIN_SHAPE[i].c_str());
+		}
+
+		static int iDomainShapesIdx = 0;
+		ImGui::Combo("Domain Shape", &iDomainShapesIdx, DomainShapes.data(), int(DomainShapes.size()));
+
+		std::vector<const char*> BoundaryFixWeights;
+		for (size_t i = 0; i < IM_ARRAYSIZE(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT); i++)
+		{
+			BoundaryFixWeights.push_back(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_VALUE_SUPPORTED_BOUNDARY_FIX_WEIGHT[i].c_str());
+		}
+
+		static int iBoundaryFixWeight = 0;
+		ImGui::Combo("Boundary Fix Weight", &iBoundaryFixWeight, BoundaryFixWeights.data(), int(BoundaryFixWeights.size()));
+
+		static bool bFailure = false;
+		if (ImGui::Button("Run Algorithm"))
+		{
+			std::string CoefficientType = CoefficientTypes[iCoefficientTypesIdx];
+			std::string DomainShape = DomainShapes[iDomainShapesIdx];
+			std::string BoundaryFixWeight = BoundaryFixWeights[iBoundaryFixWeight];
+			m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_COEFFICIENT_TYPE, CoefficientType);
+			m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_DOMAIN_SHAPE, DomainShape);
+			m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm->PutArg(MeshAlgorithm::BarycentricMappingAlgorithm::PARAMS_KEY_BOUNDARY_FIX_WEIGHT, BoundaryFixWeight);
+			if (m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm->Execute(&mesh_))
+			{
+				m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bRunAlgorithm = true;
+				bFailure = false;
+			}
+			else
+			{
+				ImGui::OpenPopup("Error##Barycentric Mapping");
+				bFailure = true;
+			}
+		}
+
+		if (bFailure)
+		{
+			if (ImGui::BeginPopupModal("Error##Barycentric Mapping"), ImGuiWindowFlags_AlwaysAutoResize)
+			{
+				ImGui::Text("Some errors occurred. Input mesh must have 1 boundary and 0 genus!");
+				if (ImGui::Button("OK", ImVec2(120, 0)))
+				{
+					ImGui::CloseCurrentPopup();
+					bFailure = false;
+				}
+				ImGui::EndPopup();
+			}
+		}
+
+		if (m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bRunAlgorithm)
+		{
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Open Animation to visualize the algorithm");
+		}
+
+		ImGui::End();
+	}
+	else
+	{
+		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bRunAlgorithm = false;
+	}
+}
+
+void GioApplication::CloseBarycentricMappingAlgorithmDialog()
+{
+	if (m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog)
+	{
+		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bRunAlgorithm = false;
+		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog = false;
 	}
 }
 
@@ -397,7 +516,7 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 			{
 				g_pApp->m_iSelectedFacet = iFacet;
 			}
-			
+
 			if (SqDistance < 0.05 && Button == 1)
 			{
 				if (iFacet == g_pApp->m_iSelectedFacet)
@@ -405,7 +524,40 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 					g_pApp->m_iSelectedFacet = GEO::NO_FACET;
 				}
 			}
+		}
 
+		if (g_pApp->m_bSelectingVertex)
+		{
+			glup_viewer_get_picked_point(HitPoint, &bHitBackground);
+			iFacet = g_pApp->m_MashFacetsAABB->nearest_facet(GEO::vec3(HitPoint[0], HitPoint[1], HitPoint[2]), NearestPoint, SqDistance);
+
+			double MinSqDistance = std::numeric_limits<double>::max();
+			GEO::index_t iMinDistanceVertex = GEO::NO_VERTEX;
+
+			for (GEO::index_t i = 0; i < g_pApp->mesh_.facets.nb_vertices(iFacet); i++)
+			{
+				GEO::index_t iVertex = g_pApp->mesh_.facets.vertex(iFacet, i);
+				GEO::vec3 Vertex = g_pApp->mesh_.vertices.point(iVertex);
+				double SqDistance = std::pow((Vertex.x - NearestPoint.x), 2.0) + std::pow((Vertex.y - NearestPoint.y), 2.0) + std::pow((Vertex.z - NearestPoint.z), 2.0);
+				if (SqDistance < MinSqDistance)
+				{
+					MinSqDistance = SqDistance;
+					iMinDistanceVertex = iVertex;
+				}
+			}
+
+			if (MinSqDistance < 1e-5 && Button == 0)
+			{
+				g_pApp->m_iSelectedVertex = iMinDistanceVertex;
+			}
+
+			if (MinSqDistance < 1e-5 && Button == 1)
+			{
+				if (iMinDistanceVertex == g_pApp->m_iSelectedVertex)
+				{
+					g_pApp->m_iSelectedVertex = GEO::NO_VERTEX;
+				}
+			}
 		}
 	case GLUP_VIEWER_MOVE:
 		break;

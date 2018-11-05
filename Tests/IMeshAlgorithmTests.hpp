@@ -1,8 +1,11 @@
 #pragma once
 
 #include <gtest\gtest.h>
+#include <geogram\mesh\mesh_io.h>
+#include <geogram\mesh\mesh_reorder.h>
 
 #include <Algorithm\IMeshAlgorithm.hpp>
+#include <MeshGenerator.hpp>
 
 TEST(IMeshAlgorithm, Function_Execute)
 {
@@ -150,3 +153,195 @@ TEST(IMeshAlgorithm, Function_PutArg_SetArg)
 	ASSERT_FALSE(IAlgorithm.GetArg("VectorUInt32", &VectorInt32ArgOut));
 }
 
+TEST(IMeshAlgorithm, Function_GetBoundaryNumber)
+{
+	std::string Root = "..\\Mesh\\";
+	std::vector<std::string> BenchMarkModels =
+	{
+		"plane_hole1.obj",
+		"plane_hole2.obj",
+		"donut_genus1.obj",
+		"simple_donut_genus1.obj",
+		"sphere_hole1.obj",
+		"sphere_hole2.obj",
+		"kitten.obj",
+		"kitten_holes.obj",
+		"king.obj"
+	};
+
+	std::vector<GEO::index_t> BoundaryNumber =
+	{
+		2,
+		3,
+		0,
+		0,
+		1,
+		2,
+		0,
+		3,
+		0
+	};
+
+	for (GEO::index_t i = 0; i < BenchMarkModels.size(); i++)
+	{
+		GEO::Mesh Mesh;
+		GEO::mesh_load(Root + BenchMarkModels[i], Mesh);
+		GEO::mesh_reorder(Mesh, GEO::MESH_ORDER_MORTON);
+		std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> IMeshAlgorithm(new MeshAlgorithm::IMeshAlgorithm());
+		ASSERT_EQ(IMeshAlgorithm->GetBoundaryNumber(&Mesh), BoundaryNumber[i]);;
+	}
+}
+
+TEST(IMeshAlgorithm, Function_IsVertexAdjacent)
+{
+	GEO::Mesh Mesh;
+	MeshGenerator::MeshGenHexagon(&Mesh);
+	HalfedgeMeshWrapper Wrapper(&Mesh);
+	MeshAlgorithm::IMeshAlgorithm IAlgorithm;
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 0, 1));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 0, 5));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 0, 6));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 0, 7));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 0, 2));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 0, 3));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 0, 4));
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 1, 0));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 1, 2));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 1, 3));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 1, 4));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 1, 5));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 1, 6));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 1, 7));
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 2, 1));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 2, 3));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 2, 7));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 2, 0));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 2, 4));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 2, 5));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 2, 6));
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 3, 2));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 3, 4));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 3, 6));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 3, 7));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 3, 0));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 3, 1));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 3, 5));
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 4, 3));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 4, 5));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 4, 0));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 4, 1));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 4, 2));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 4, 6));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 4, 7));
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 5, 0));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 5, 4));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 5, 6));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 5, 1));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 5, 2));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 5, 3));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 5, 7));
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 6, 0));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 6, 3));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 6, 5));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 6, 1));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 6, 2));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 6, 4));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 6, 7));
+
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 7, 0));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 7, 2));
+	ASSERT_TRUE(IAlgorithm.IsVertexAdjacent(&Wrapper, 7, 3));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 7, 1));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 7, 5));
+	ASSERT_FALSE(IAlgorithm.IsVertexAdjacent(&Wrapper, 7, 6));
+}
+
+TEST(IMeshAlgorithm, Function_GetAdjacentVertices)
+{
+	GEO::Mesh Mesh;
+	MeshGenerator::MeshGenHexagon(&Mesh);
+	HalfedgeMeshWrapper Wrapper(&Mesh);
+	MeshAlgorithm::IMeshAlgorithm IAlgorithm;
+
+	GEO::vector<GEO::index_t> Adj;
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 0);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 0) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 1) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 5) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 6) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 7) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 4);
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 1);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 1) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 0) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 2) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 2);
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 2);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 2) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 1) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 3) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 7) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 3);
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 3);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 3) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 2) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 4) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 6) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 7) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 4);
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 4);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 4) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 3) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 5) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 2);
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 5);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 5) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 0) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 4) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 6) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 3);
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 6);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 6) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 0) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 3) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 5) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 3);
+
+	Adj = IAlgorithm.GetAdjacentVertices(&Wrapper, 7);
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 7) == Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 0) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 2) != Adj.end());
+	ASSERT_TRUE(std::find(Adj.begin(), Adj.end(), 3) != Adj.end());
+	ASSERT_TRUE(Adj.size() == 3);
+}
+
+TEST(IMeshAlgorithm, Function_IsBoundaryVertex)
+{
+	GEO::Mesh Mesh;
+	MeshGenerator::MeshGenHexagon(&Mesh);
+	HalfedgeMeshWrapper Wrapper(&Mesh);
+	MeshAlgorithm::IMeshAlgorithm IAlgorithm;
+
+	ASSERT_TRUE(IAlgorithm.IsBoundaryVertex(&Wrapper, 0));
+	ASSERT_TRUE(IAlgorithm.IsBoundaryVertex(&Wrapper, 1));
+	ASSERT_TRUE(IAlgorithm.IsBoundaryVertex(&Wrapper, 2));
+	ASSERT_TRUE(IAlgorithm.IsBoundaryVertex(&Wrapper, 3));
+	ASSERT_TRUE(IAlgorithm.IsBoundaryVertex(&Wrapper, 4));
+	ASSERT_TRUE(IAlgorithm.IsBoundaryVertex(&Wrapper, 5));
+	ASSERT_FALSE(IAlgorithm.IsBoundaryVertex(&Wrapper, 6));
+	ASSERT_FALSE(IAlgorithm.IsBoundaryVertex(&Wrapper, 7));
+}
