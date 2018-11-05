@@ -26,5 +26,7 @@ namespace MeshAlgorithm
 			Out GEO::vec2 & Z1,
 			Out GEO::vec2 & Z2
 		) const;
+
+		void SolveLeastSquareEquation(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper);
 	};
 }

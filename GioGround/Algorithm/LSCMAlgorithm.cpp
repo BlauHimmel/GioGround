@@ -2,6 +2,9 @@
 
 #include "..\HalfedgeMeshWrapper.hpp"
 
+#include <geogram\NL\nl.h>
+#include <mkl.h>
+
 namespace MeshAlgorithm
 {
 	bool LSCMAlgorithm::Execute(InOut GEO::Mesh * pMesh)
@@ -77,6 +80,29 @@ namespace MeshAlgorithm
 		Z0 = GEO::vec2(X0, Y0);
 		Z1 = GEO::vec2(X1, Y1);
 		Z2 = GEO::vec2(X2, Y2);
+	}
+
+	void LSCMAlgorithm::SolveLeastSquareEquation(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper)
+	{
+		assert(pHalfedgeMeshWrapper != nullptr);
+		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
+
+		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
+
+		GEO::index_t nFacet = pMesh->facets.nb();
+		GEO::index_t nVertex = pMesh->vertices.nb();
+		const GEO::index_t nFixedPoint = 2;
+
+		int m = 2 * int(nFacet);
+		int n = 2 * int(nVertex - nFixedPoint);
+
+		double * A/*Size = m * n*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * m * n, 64));
+		double * B/*Size = m * 1*/ = reinterpret_cast<double*>(mkl_malloc(sizeof(double) * m, 64));
+
+		LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', m, n, 1, A, n, B, 1);
+
+		mkl_free(A);
+		mkl_free(B);
 	}
 
 }
