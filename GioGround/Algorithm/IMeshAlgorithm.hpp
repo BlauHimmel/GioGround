@@ -14,6 +14,11 @@
 
 namespace MeshAlgorithm
 {
+	
+	// VERY IMPORTANT THING : The order of element of the input mesh must be guarantee, otherwise you will obtain an WRONG ANSWER.
+	// That is to say, GEO::mesh_reorder() must be called first. In the GiogroundApp, we dont need to care about this 
+	// issue since MeshFacetsAABB structure is build automatically, which implicitly call this function. But in other circumstance,
+	// GEO::mesh_reorder() must be called first!!!!
 	class IMeshAlgorithm
 	{
 	private:
@@ -25,6 +30,13 @@ namespace MeshAlgorithm
 		bool ExecuteOut(In GEO::Mesh * pMesh, Out GEO::Mesh * pOutMesh);
 
 		virtual bool Visualize(In GEO::Mesh * const pMesh) const;
+
+	public:
+		GEO::index_t GetBoundaryNumber(In GEO::Mesh * const pMesh) const;
+		bool IsVertexAdjacent(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i, In GEO::index_t j) const;
+		GEO::vector<GEO::index_t> GetAdjacentVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
+		bool IsBoundaryVertex(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
+		void GetBBox(In GEO::Mesh * const pMesh, Out double * XYZMin, Out double * XYZMax, bool bAnimate) const;
 
 	protected:
 		virtual bool Reset();

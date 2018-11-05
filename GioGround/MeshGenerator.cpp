@@ -1,5 +1,7 @@
 #include "MeshGenerator.hpp"
 
+#include <geogram\mesh\mesh_reorder.h>
+
 namespace MeshGenerator
 {
 	bool MeshGenHexagon(InOut GEO::Mesh * pMesh)
@@ -26,7 +28,7 @@ namespace MeshGenerator
 
 		pMesh->clear(false, false);
 
-		pMesh->vertices.create_vertices(8);
+		pMesh->vertices.create_vertices(nPoints);
 		pMesh->vertices.assign_points(pPoints, nDim, nPoints);
 
 		pMesh->facets.create_quad(6, 0, 7, 3);
@@ -39,5 +41,40 @@ namespace MeshGenerator
 		pMesh->vertices.set_double_precision();
 
 		return true;
+	}
+
+	bool MeshGenPyramid(InOut GEO::Mesh * pMesh)
+	{
+		if (pMesh == nullptr)
+		{
+			return false;
+		}
+
+		static double pPoints[] =
+		{
+			 3.0,  0.0, 1.0,
+			-1.0, -1.0, 0.0,
+			 1.0, -1.0, 0.0,
+			 1.0,  1.0, 0.0,
+			-1.0,  1.0, 0.0
+		};
+
+		static GEO::index_t nDim = 3;
+		static GEO::index_t nPoints = 5;
+
+		pMesh->clear(false, false);
+
+		pMesh->vertices.create_vertices(nPoints);
+		pMesh->vertices.assign_points(pPoints, nDim, nPoints);
+
+		pMesh->facets.create_triangle(0, 1, 2);
+		pMesh->facets.create_triangle(0, 2, 3);
+		pMesh->facets.create_triangle(0, 3, 4);
+		pMesh->facets.create_triangle(0, 4, 1);
+
+		pMesh->facets.connect();
+		pMesh->vertices.set_double_precision();
+
+		return false;
 	}
 }

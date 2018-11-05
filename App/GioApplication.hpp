@@ -14,15 +14,26 @@
 #include <geogram\basic\stopwatch.h>
 
 #include <memory>
+#include <limits>
+#include <vector>
 
 #include <MeshGenerator.hpp>
 #include <Algorithm\MeshCutAlgorithm.hpp>
+#include <Algorithm\BarycentricMappingAlgorithm.hpp>
 
 extern class GioApplication * g_pApp;
 
 class GioApplication : public GEO::SimpleMeshApplication
 {
 	friend GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event);
+
+	struct Algorithm
+	{
+		std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> MeshAlgorithm = nullptr;
+		bool bVisualizeAlgorithm = false;
+		bool bRunAlgorithm = false;
+		bool bShowDialog = false;
+	};
 
 protected:
 	float m_BorderWidth = 0.1f;
@@ -31,12 +42,16 @@ protected:
 	std::unique_ptr<GEO::MeshFacetsAABB> m_MashFacetsAABB;
 	GEO::index_t m_iSelectedFacet = GEO::NO_FACET;
 	bool m_bSelectingFacet = false;
+	GEO::index_t m_iSelectedVertex = GEO::NO_VERTEX;
+	bool m_bSelectingVertex = false;
+	bool m_bAniamted = false;
 
-	std::unique_ptr<MeshAlgorithm::IMeshAlgorithm> m_MeshAlgorithm = nullptr;
-	bool m_bShowMeshCutAlgorithmDialog = false;
+	std::vector<Algorithm> m_Algorithms;
+	size_t m_iCurrentAlgorithm = size_t(-1);
 
-	bool m_bVisualizeAlgorithm = false;
-	bool m_bRunAlgorithm = false;
+	const size_t ALGORITHM_NUMBER = 2;
+	const size_t CUT_MESH_ALGORITHM_INDEX = 0;
+	const size_t BARYCENTRIC_MAPPING_ALGORITHM_INDEX = 1;
 
 public:
 	GioApplication(int argc, char ** argv);
@@ -46,6 +61,7 @@ public:
 	virtual void draw_gui() override;
 	virtual void draw_object_properties() override;
 	virtual bool load(const std::string & Filename) override;
+	virtual bool save(const std::string & Filename) override;
 
 protected:
 	virtual int PANE_WIDTH() const override;
@@ -57,6 +73,9 @@ private:
 
 	void DrawMeshCutAlgorithmDialog();
 	void CloseMeshCutAlgorithmDialog();
+
+	void DrawBarycentricMappingAlgorithmDialog();
+	void CloseBarycentricMappingAlgorithmDialog();
 };
 
 GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event);

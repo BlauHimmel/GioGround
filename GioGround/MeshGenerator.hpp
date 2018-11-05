@@ -7,4 +7,6 @@
 namespace MeshGenerator
 {
 	bool MeshGenHexagon(InOut GEO::Mesh * pMesh);
+
+	bool MeshGenPyramid(InOut GEO::Mesh * pMesh);
 }

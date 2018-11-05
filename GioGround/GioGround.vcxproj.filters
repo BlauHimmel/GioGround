@@ -33,6 +33,9 @@
     <ClCompile Include="Algorithm\MeshCutAlgorithm.cpp">
       <Filter>Source Files\Algorithm</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\BarycentricMappingAlgorithm.cpp">
+      <Filter>Source Files\Algorithm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MeshGenerator.hpp">
@@ -48,6 +51,9 @@
       <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\MeshCutAlgorithm.hpp">
+      <Filter>Header Files\Algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\BarycentricMappingAlgorithm.hpp">
       <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
   </ItemGroup>
