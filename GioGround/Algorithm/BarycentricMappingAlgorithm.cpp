@@ -1136,7 +1136,5 @@ namespace MeshAlgorithm
 			AttriVertexTexCoord[iVertex * 2 + 0] = m_BoundaryVertices[i * 3 + 0];
 			AttriVertexTexCoord[iVertex * 2 + 1] = m_BoundaryVertices[i * 3 + 1];
 		}
-
-
 	}
 }
