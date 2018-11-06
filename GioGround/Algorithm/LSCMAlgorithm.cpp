@@ -310,6 +310,7 @@ namespace MeshAlgorithm
 			nlCoefficient(iU1, -C    );
 			nlCoefficient(iV1,  D    );
 			nlCoefficient(iU2,  A    );
+			nlCoefficient(iV2,  B    );
 			nlEnd(NL_ROW);
 
 			/* Imaginary part */
@@ -318,6 +319,7 @@ namespace MeshAlgorithm
 			nlCoefficient(iV0, -A + C);
 			nlCoefficient(iU1, -D    );
 			nlCoefficient(iV1, -C    );
+			nlCoefficient(iU2, -B    );
 			nlCoefficient(iV2,  A    );
 			nlEnd(NL_ROW);
 		}
