@@ -323,7 +323,8 @@ void GioApplication::draw_application_menus()
 	{
 		CloseAlgorithmDialog();
 		
-		ImGui::MenuItem("Slice Mesh", nullptr, &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog);
+		ImGui::MenuItem("Cut Mesh", nullptr, &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog);
+		ImGui::Separator();
 		ImGui::MenuItem("Barycentric Mapping", nullptr, &m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog);
 		ImGui::MenuItem("LSCM", nullptr, &m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog);
 		ImGui::EndMenu();
