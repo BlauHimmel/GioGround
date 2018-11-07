@@ -446,7 +446,6 @@ namespace MeshAlgorithm
 		GEO::vector<double> Sigma_w_ij_Lists(n);
 		GEO::vector<GEO::vector<GEO::index_t>> iAdjVerticesLists(n);
 
-		#pragma omp parallel for
 		for (int x = 0; x < n; x++)
 		{
 			GEO::index_t i = GEO::index_t(x);
