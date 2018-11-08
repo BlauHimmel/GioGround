@@ -78,7 +78,7 @@ namespace MeshGenerator
 		return true;
 	}
 
-	bool MeshUVSphere(InOut GEO::Mesh * pMesh, GEO::index_t nSegments, GEO::index_t nRings)
+	bool MeshUVSphere(InOut GEO::Mesh * pMesh, GEO::index_t nSegments, GEO::index_t nRings, double Radius, double PoleEpsilon)
 	{
 		if (pMesh == nullptr)
 		{
@@ -91,27 +91,26 @@ namespace MeshGenerator
 		GEO::index_t nFacet = nSegments * nRings * 2;
 		
 		pMesh->vertices.create_vertices(nVertex);
-		pMesh->facets.create_facets(nFacet, 3);
 
 		GEO::Attribute<double> AttriVertexUV;
 		AttriVertexUV.bind(pMesh->vertices.attributes(), "tex_coord");
 		AttriVertexUV.redim(2);
 
-		double DeltaTheta = M_PI / nSegments;
-		double DeltaPhi = 2.0 * M_PI / nRings;
-
 		GEO::index_t iVertex = 0;
 
-		for (double Theta = 0.0; Theta <= M_PI; Theta += DeltaTheta)
+		for (GEO::index_t i = 0; i <= nRings; i++)
 		{
-			for (double Phi = 0.0; Phi <= 2.0 * M_PI; Phi += DeltaPhi)
+			double Theta = (double(i) / double(nRings)) * (M_PI - 2.0 * PoleEpsilon) + PoleEpsilon;
+			for (GEO::index_t j = 0; j <= nSegments; j++)
 			{
-				double X = std::sin(Theta) * std::cos(Phi);
-				double Y = std::sin(Theta) * std::sin(Phi);
-				double Z = std::cos(Theta);
+				double Phi = (double(j) / double(nSegments)) * 2.0 * M_PI;
+		
+				double X = Radius * std::sin(Theta) * std::cos(Phi);
+				double Y = Radius * std::sin(Theta) * std::sin(Phi);
+				double Z = Radius * std::cos(Theta);
 
-				double U = Phi;
-				double V = Theta;
+				double U = Phi / (2.0 * M_PI);
+				double V = Theta / M_PI;
 
 				double * pV = pMesh->vertices.point_ptr(iVertex);
 				pV[0] = X;
@@ -124,6 +123,23 @@ namespace MeshGenerator
 				iVertex++;
 			}
 		}
+
+		for (GEO::index_t i = 0; i < nRings; i++)
+		{
+			for (GEO::index_t j = 0; j < nSegments; j++)
+			{
+				GEO::index_t iLB = i * (nSegments + 1) + j;
+				GEO::index_t iRB = iLB + 1;
+				GEO::index_t iLT = iLB + (nSegments + 1);
+				GEO::index_t iRT = iLT + 1;
+
+				pMesh->facets.create_triangle(iRT, iRB, iLB);
+				pMesh->facets.create_triangle(iLB, iLT, iRT);
+			}
+		}
+
+		pMesh->facets.connect();
+		pMesh->vertices.set_double_precision();
 
 		return true;
 	}

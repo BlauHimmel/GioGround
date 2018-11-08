@@ -179,7 +179,7 @@ namespace MeshAlgorithm
 		}
 	}
 
-	float IMeshAlgorithm::SecondOrderDifference(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t iCorner) const
+	double IMeshAlgorithm::SecondOrderDifference(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t iCorner) const
 	{
 		assert(pHalfedgeMeshWrapper != nullptr);
 		assert(pHalfedgeMeshWrapper->pMesh != nullptr);

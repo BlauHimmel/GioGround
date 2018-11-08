@@ -10,5 +10,5 @@ namespace MeshGenerator
 
 	bool MeshGenPyramid(InOut GEO::Mesh * pMesh);
 
-	bool MeshUVSphere(InOut GEO::Mesh * pMesh, GEO::index_t nSegments, GEO::index_t nRings);
+	bool MeshUVSphere(InOut GEO::Mesh * pMesh, GEO::index_t nSegments, GEO::index_t nRings, double Radius, double PoleEpsilon);
 }
