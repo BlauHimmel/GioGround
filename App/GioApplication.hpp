@@ -36,6 +36,11 @@ class GioApplication : public GEO::SimpleMeshApplication
 		bool bShowDialog = false;
 	};
 
+	struct Geometry
+	{
+		bool bShowDialog = false;
+	};
+
 protected:
 	float m_BorderWidth = 0.1f;
 	GEO::vec4f m_BorderColor = GEO::vec4f(1.0f, 0.0f, 0.0f, 1.0f);
@@ -64,6 +69,12 @@ protected:
 	const size_t BARYCENTRIC_MAPPING_ALGORITHM_INDEX = 1;
 	const size_t LSCM_ALGORITHM_INDEX = 2;
 
+	std::vector<Geometry> m_Geometries;
+	size_t m_iCurrentGeometry = size_t(-1);
+
+	const size_t GEOMETRY_NUMBER = 1;
+	const size_t UV_SPHERE_INDEX = 0;
+
 public:
 	GioApplication(int argc, char ** argv);
 
@@ -79,6 +90,9 @@ protected:
 	virtual void draw_application_menus() override;
 
 private:
+	void CloseDialog();
+	void DrawDialog();
+
 	void DrawAlgorithmDialog();
 	void CloseAlgorithmDialog();
 
@@ -95,6 +109,12 @@ private:
 	void RequestSelectingVertex(size_t iAlgorithm, bool bSingleSelect = true);
 	void ReleaseSelectingFacet(size_t iAlgorithm);
 	void ReleaseSelectingVertex(size_t iAlgorithm);
+	
+	void DrawGeometryDialog();
+	void CloseGeometryDialog();
+
+	void DrawUVSphereDialog();
+	void CloseUVSphereDialog();
 };
 
 GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event);

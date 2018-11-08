@@ -38,7 +38,7 @@ namespace MeshAlgorithm
 		GEO::vector<GEO::index_t> GetAdjacentVertices(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
 		bool IsBoundaryVertex(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t i) const;
 		void GetBBox(In GEO::Mesh * const pMesh, Out double * XYZMin, Out double * XYZMax, bool bAnimate) const;
-				/**		* The SOD is the simplest classification operator. It assigns a weight		* to every edge in the mesh proportional to the dihedral angle defined by		* the normals of its two adjacent triagles.		* Ref : Multiresolution Feature Extraction from Unstructured Meshes		* - Andreas Hubeli, Markus Gross		*/		float SecondOrderDifference(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t iCorner) const;
+				/**		* The SOD is the simplest classification operator. It assigns a weight		* to every edge in the mesh proportional to the dihedral angle defined by		* the normals of its two adjacent triagles.		* Ref : Multiresolution Feature Extraction from Unstructured Meshes		* - Andreas Hubeli, Markus Gross		*/		double SecondOrderDifference(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t iCorner) const;
 
 	protected:
 		virtual bool Reset();

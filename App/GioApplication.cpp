@@ -216,6 +216,8 @@ void GioApplication::init_graphics()
 	m_Algorithms[CUT_MESH_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::MeshCutAlgorithm>();
 	m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::BarycentricMappingAlgorithm>();
 	m_Algorithms[LSCM_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::LSCMAlgorithm>();
+
+	m_Geometries.resize(GEOMETRY_NUMBER);
 }
 
 void GioApplication::draw_gui()
@@ -350,7 +352,7 @@ void GioApplication::draw_object_properties()
 
 bool GioApplication::load(const std::string & Filename)
 {
-	CloseAlgorithmDialog();
+	CloseDialog();
 	bool bResult = GEO::SimpleMeshApplication::load(Filename);
 	mesh_.vertices.set_double_precision();
 	m_MashFacetsAABB.reset(new GEO::MeshFacetsAABB(mesh_));
@@ -372,7 +374,7 @@ void GioApplication::draw_application_menus()
 {
 	if (ImGui::BeginMenu("Algorithm"))
 	{
-		CloseAlgorithmDialog();
+		CloseDialog();
 		
 		ImGui::MenuItem("Cut Mesh", nullptr, &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog);
 		ImGui::Separator();
@@ -381,7 +383,27 @@ void GioApplication::draw_application_menus()
 		ImGui::EndMenu();
 	}
 
+	if (ImGui::BeginMenu("Geometry"))
+	{
+		CloseDialog();
+
+		ImGui::MenuItem("UV Sphere", nullptr, &m_Geometries[UV_SPHERE_INDEX].bShowDialog);
+		ImGui::EndMenu();
+	}
+
+	DrawDialog();
+}
+
+void GioApplication::CloseDialog()
+{
+	CloseAlgorithmDialog();
+	CloseGeometryDialog();
+}
+
+void GioApplication::DrawDialog()
+{
 	DrawAlgorithmDialog();
+	DrawGeometryDialog();
 }
 
 void GioApplication::DrawAlgorithmDialog()
@@ -652,6 +674,52 @@ void GioApplication::ReleaseSelectingVertex(size_t iAlgorithm)
 		m_iVertexSelectingAlgorithm = size_t(-1);
 		m_bSelectingVertex = false;
 		m_bDisplayAllSelectedVertices = false;
+	}
+}
+
+void GioApplication::DrawGeometryDialog()
+{
+	DrawUVSphereDialog();
+}
+
+void GioApplication::CloseGeometryDialog()
+{
+	m_iCurrentGeometry = size_t(-1);
+	CloseUVSphereDialog();
+}
+
+void GioApplication::DrawUVSphereDialog()
+{
+	if (m_Geometries[UV_SPHERE_INDEX].bShowDialog)
+	{
+		m_iCurrentAlgorithm = LSCM_ALGORITHM_INDEX;
+
+		ImGui::Begin("UV Sphere", &m_Geometries[UV_SPHERE_INDEX].bShowDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+
+		static float Radius = 1.0f;
+		static float PoleEpsilon = 0.0f;
+		static int nSegments = 64;
+		static int nRings = 32;
+
+		ImGui::DragInt("Segment", &nSegments, 1.0f, 2, 400);
+		ImGui::DragInt("Ring", &nRings, 1.0f, 1, 200);
+		ImGui::DragFloat("Radius", &Radius, 0.05f, 0.1f, 100.0f);
+		ImGui::DragFloat("Pole Epsilon(Angle)", &PoleEpsilon, 0.5f, 0.0f, 179.5f);
+		if (ImGui::Button("Create"))
+		{
+			MeshGenerator::MeshUVSphere(&mesh_, GEO::index_t(nSegments), GEO::index_t(nRings), double(Radius), double(PoleEpsilon / 180.0 * M_PI));
+			mesh_gfx_.set_mesh(&mesh_);
+		}
+
+		ImGui::End();
+	}
+}
+
+void GioApplication::CloseUVSphereDialog()
+{
+	if (m_Geometries[UV_SPHERE_INDEX].bShowDialog)
+	{
+		m_Geometries[UV_SPHERE_INDEX].bShowDialog = false;
 	}
 }
 
