@@ -20,6 +20,7 @@
 #include <MeshGenerator.hpp>
 #include <Algorithm\MeshCutAlgorithm.hpp>
 #include <Algorithm\BarycentricMappingAlgorithm.hpp>
+#include <Algorithm\LSCMAlgorithm.hpp>
 
 extern class GioApplication * g_pApp;
 
@@ -40,18 +41,28 @@ protected:
 	GEO::vec4f m_BorderColor = GEO::vec4f(1.0f, 0.0f, 0.0f, 1.0f);
 
 	std::unique_ptr<GEO::MeshFacetsAABB> m_MashFacetsAABB;
+
 	GEO::index_t m_iSelectedFacet = GEO::NO_FACET;
+	std::set<GEO::index_t> m_iSelectedFacets;
 	bool m_bSelectingFacet = false;
+	bool m_bDisplayAllSelectedFacets = false;
+	size_t m_iFacetSelectingAlgorithm = size_t(-1);
+
 	GEO::index_t m_iSelectedVertex = GEO::NO_VERTEX;
+	std::set<GEO::index_t> m_iSelectedVertices;
 	bool m_bSelectingVertex = false;
+	bool m_bDisplayAllSelectedVertices = false;
+	size_t m_iVertexSelectingAlgorithm = size_t(-1);
+
 	bool m_bAniamted = false;
 
 	std::vector<Algorithm> m_Algorithms;
 	size_t m_iCurrentAlgorithm = size_t(-1);
 
-	const size_t ALGORITHM_NUMBER = 2;
+	const size_t ALGORITHM_NUMBER = 3;
 	const size_t CUT_MESH_ALGORITHM_INDEX = 0;
 	const size_t BARYCENTRIC_MAPPING_ALGORITHM_INDEX = 1;
+	const size_t LSCM_ALGORITHM_INDEX = 2;
 
 public:
 	GioApplication(int argc, char ** argv);
@@ -76,6 +87,14 @@ private:
 
 	void DrawBarycentricMappingAlgorithmDialog();
 	void CloseBarycentricMappingAlgorithmDialog();
+
+	void DrawLSCMAlgorithmDialog();
+	void CloseLSCMAlgorithmDialog();
+
+	void RequestSelectingFacet(size_t iAlgorithm, bool bSingleSelect = true);
+	void RequestSelectingVertex(size_t iAlgorithm, bool bSingleSelect = true);
+	void ReleaseSelectingFacet(size_t iAlgorithm);
+	void ReleaseSelectingVertex(size_t iAlgorithm);
 };
 
 GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event);

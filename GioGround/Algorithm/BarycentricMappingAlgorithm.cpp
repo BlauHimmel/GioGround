@@ -446,7 +446,6 @@ namespace MeshAlgorithm
 		GEO::vector<double> Sigma_w_ij_Lists(n);
 		GEO::vector<GEO::vector<GEO::index_t>> iAdjVerticesLists(n);
 
-		#pragma omp parallel for
 		for (int x = 0; x < n; x++)
 		{
 			GEO::index_t i = GEO::index_t(x);
@@ -1136,7 +1135,5 @@ namespace MeshAlgorithm
 			AttriVertexTexCoord[iVertex * 2 + 0] = m_BoundaryVertices[i * 3 + 0];
 			AttriVertexTexCoord[iVertex * 2 + 1] = m_BoundaryVertices[i * 3 + 1];
 		}
-
-
 	}
 }

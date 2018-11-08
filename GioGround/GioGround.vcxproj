@@ -116,7 +116,7 @@
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS /D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableSpecificWarnings>4099</DisableSpecificWarnings>
-      <OpenMPSupport>true</OpenMPSupport>
+      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +159,7 @@
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS /D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableSpecificWarnings>4099</DisableSpecificWarnings>
-      <OpenMPSupport>true</OpenMPSupport>
+      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -175,6 +175,7 @@
   <ItemGroup>
     <ClCompile Include="Algorithm\BarycentricMappingAlgorithm.cpp" />
     <ClCompile Include="Algorithm\IMeshAlgorithm.cpp" />
+    <ClCompile Include="Algorithm\LSCMAlgorithm.cpp" />
     <ClCompile Include="Algorithm\MeshCutAlgorithm.cpp" />
     <ClCompile Include="HalfedgeMeshWrapper.cpp" />
     <ClCompile Include="MeshGenerator.cpp" />
@@ -182,6 +183,7 @@
   <ItemGroup>
     <ClInclude Include="Algorithm\BarycentricMappingAlgorithm.hpp" />
     <ClInclude Include="Algorithm\IMeshAlgorithm.hpp" />
+    <ClInclude Include="Algorithm\LSCMAlgorithm.hpp" />
     <ClInclude Include="Algorithm\MeshCutAlgorithm.hpp" />
     <ClInclude Include="HalfedgeMeshWrapper.hpp" />
     <ClInclude Include="Macro.hpp" />

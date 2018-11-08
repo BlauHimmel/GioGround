@@ -106,45 +106,96 @@ void GioApplication::draw_scene()
 		mesh_gfx_.set_lighting(lighting_);
 	}
 
-	if (m_bSelectingFacet && m_iSelectedFacet != GEO::NO_FACET)
+	if (m_bSelectingFacet)
 	{
-		GEO::index_t iV1 = mesh_.facets.vertex(m_iSelectedFacet, 0);
-		GEO::index_t iV2 = mesh_.facets.vertex(m_iSelectedFacet, 1);
-		GEO::index_t iV3 = mesh_.facets.vertex(m_iSelectedFacet, 2);
+		if (!m_bDisplayAllSelectedFacets && m_iSelectedFacet != GEO::NO_FACET)
+		{
+			GEO::index_t iV1 = mesh_.facets.vertex(m_iSelectedFacet, 0);
+			GEO::index_t iV2 = mesh_.facets.vertex(m_iSelectedFacet, 1);
+			GEO::index_t iV3 = mesh_.facets.vertex(m_iSelectedFacet, 2);
 
-		GEO::index_t EdgeWidth = 3;
-		GEO::vec4f TriangleColor(0.0f, 1.0f, 0.0f, 1.0f);
+			GEO::index_t EdgeWidth = 3;
+			GEO::vec4f TriangleColor(0.0f, 1.0f, 0.0f, 1.0f);
 
-		glupSetMeshWidth(EdgeWidth);
-		glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, TriangleColor.data());
+			glupSetMeshWidth(EdgeWidth);
+			glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, TriangleColor.data());
 
-		double * pV1 = mesh_.vertices.point_ptr(iV1);
-		double * pV2 = mesh_.vertices.point_ptr(iV2);
-		double * pV3 = mesh_.vertices.point_ptr(iV3);
+			double * pV1 = mesh_.vertices.point_ptr(iV1);
+			double * pV2 = mesh_.vertices.point_ptr(iV2);
+			double * pV3 = mesh_.vertices.point_ptr(iV3);
 
-		glupBegin(GLUP_LINES);
-		glupVertex3d(pV1[0], pV1[1], pV1[2]);
-		glupVertex3d(pV2[0], pV2[1], pV2[2]);
-		glupVertex3d(pV2[0], pV2[1], pV2[2]);
-		glupVertex3d(pV3[0], pV3[1], pV3[2]);
-		glupVertex3d(pV3[0], pV3[1], pV3[2]);
-		glupVertex3d(pV1[0], pV1[1], pV1[2]);
-		glupEnd();
+			glupBegin(GLUP_LINES);
+			glupVertex3d(pV1[0], pV1[1], pV1[2]);
+			glupVertex3d(pV2[0], pV2[1], pV2[2]);
+			glupVertex3d(pV2[0], pV2[1], pV2[2]);
+			glupVertex3d(pV3[0], pV3[1], pV3[2]);
+			glupVertex3d(pV3[0], pV3[1], pV3[2]);
+			glupVertex3d(pV1[0], pV1[1], pV1[2]);
+			glupEnd();
+		}
+		else
+		{
+			for (auto Iter = m_iSelectedFacets.begin(); Iter != m_iSelectedFacets.end(); ++Iter)
+			{
+				GEO::index_t iV1 = mesh_.facets.vertex(*Iter, 0);
+				GEO::index_t iV2 = mesh_.facets.vertex(*Iter, 1);
+				GEO::index_t iV3 = mesh_.facets.vertex(*Iter, 2);
+
+				GEO::index_t EdgeWidth = 3;
+				GEO::vec4f TriangleColor(0.0f, 1.0f, 0.0f, 1.0f);
+
+				glupSetMeshWidth(EdgeWidth);
+				glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, TriangleColor.data());
+
+				double * pV1 = mesh_.vertices.point_ptr(iV1);
+				double * pV2 = mesh_.vertices.point_ptr(iV2);
+				double * pV3 = mesh_.vertices.point_ptr(iV3);
+
+				glupBegin(GLUP_LINES);
+				glupVertex3d(pV1[0], pV1[1], pV1[2]);
+				glupVertex3d(pV2[0], pV2[1], pV2[2]);
+				glupVertex3d(pV2[0], pV2[1], pV2[2]);
+				glupVertex3d(pV3[0], pV3[1], pV3[2]);
+				glupVertex3d(pV3[0], pV3[1], pV3[2]);
+				glupVertex3d(pV1[0], pV1[1], pV1[2]);
+				glupEnd();
+			}
+		}
 	}
 
-	if (m_bSelectingVertex && m_iSelectedVertex != GEO::NO_VERTEX)
+	if (m_bSelectingVertex)
 	{
-		double * pVertex = mesh_.vertices.point_ptr(m_iSelectedVertex);
+		if (!m_bDisplayAllSelectedVertices && m_iSelectedVertex != GEO::NO_VERTEX)
+		{
+			double * pVertex = mesh_.vertices.point_ptr(m_iSelectedVertex);
 
-		GLUPfloat PointSize = 8.0;
-		GEO::vec4f PointColor(0.0f, 1.0f, 0.0f, 1.0f);
+			GLUPfloat PointSize = 8.0;
+			GEO::vec4f PointColor(0.0f, 1.0f, 0.0f, 1.0f);
 
-		glupSetPointSize(PointSize);
-		glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, PointColor.data());
+			glupSetPointSize(PointSize);
+			glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, PointColor.data());
 
-		glupBegin(GLUP_POINTS);
-		glupVertex3d(pVertex[0], pVertex[1], pVertex[2]);
-		glupEnd();
+			glupBegin(GLUP_POINTS);
+			glupVertex3d(pVertex[0], pVertex[1], pVertex[2]);
+			glupEnd();
+		}
+		else
+		{
+			for (auto Iter = m_iSelectedVertices.begin(); Iter != m_iSelectedVertices.end(); ++Iter)
+			{
+				double * pVertex = mesh_.vertices.point_ptr(*Iter);
+
+				GLUPfloat PointSize = 8.0;
+				GEO::vec4f PointColor(0.0f, 1.0f, 0.0f, 1.0f);
+
+				glupSetPointSize(PointSize);
+				glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR, PointColor.data());
+
+				glupBegin(GLUP_POINTS);
+				glupVertex3d(pVertex[0], pVertex[1], pVertex[2]);
+				glupEnd();
+			}
+		}
 	}
 	
 	if (m_iCurrentAlgorithm != size_t(-1) && m_Algorithms[m_iCurrentAlgorithm].bVisualizeAlgorithm && m_Algorithms[m_iCurrentAlgorithm].MeshAlgorithm != nullptr)
@@ -164,6 +215,7 @@ void GioApplication::init_graphics()
 	m_Algorithms.resize(ALGORITHM_NUMBER);
 	m_Algorithms[CUT_MESH_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::MeshCutAlgorithm>();
 	m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::BarycentricMappingAlgorithm>();
+	m_Algorithms[LSCM_ALGORITHM_INDEX].MeshAlgorithm = std::make_unique<MeshAlgorithm::LSCMAlgorithm>();
 }
 
 void GioApplication::draw_gui()
@@ -322,8 +374,10 @@ void GioApplication::draw_application_menus()
 	{
 		CloseAlgorithmDialog();
 		
-		ImGui::MenuItem("Slice Mesh", nullptr, &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog);
+		ImGui::MenuItem("Cut Mesh", nullptr, &m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog);
+		ImGui::Separator();
 		ImGui::MenuItem("Barycentric Mapping", nullptr, &m_Algorithms[BARYCENTRIC_MAPPING_ALGORITHM_INDEX].bShowDialog);
+		ImGui::MenuItem("LSCM", nullptr, &m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog);
 		ImGui::EndMenu();
 	}
 
@@ -334,6 +388,7 @@ void GioApplication::DrawAlgorithmDialog()
 {
 	DrawMeshCutAlgorithmDialog();
 	DrawBarycentricMappingAlgorithmDialog();
+	DrawLSCMAlgorithmDialog();
 }
 
 void GioApplication::CloseAlgorithmDialog()
@@ -341,6 +396,7 @@ void GioApplication::CloseAlgorithmDialog()
 	m_iCurrentAlgorithm = size_t(-1);
 	CloseMeshCutAlgorithmDialog();
 	CloseBarycentricMappingAlgorithmDialog();
+	CloseLSCMAlgorithmDialog();
 }
 
 void GioApplication::DrawMeshCutAlgorithmDialog()
@@ -361,7 +417,11 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 
 		if (!m_bSelectingFacet)
 		{
-			m_iSelectedFacet = GEO::NO_FACET;
+			ReleaseSelectingFacet(CUT_MESH_ALGORITHM_INDEX);
+		}
+		else
+		{
+			RequestSelectingFacet(CUT_MESH_ALGORITHM_INDEX, true);
 		}
 
 		if (ImGui::Button("Run Algorithm"))
@@ -384,8 +444,7 @@ void GioApplication::DrawMeshCutAlgorithmDialog()
 	{
 		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bRunAlgorithm = false;
 		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
-		m_bSelectingFacet = false;
-		m_iSelectedFacet = GEO::NO_FACET;
+		ReleaseSelectingFacet(CUT_MESH_ALGORITHM_INDEX);
 	}
 }
 
@@ -396,9 +455,7 @@ void GioApplication::CloseMeshCutAlgorithmDialog()
 		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bRunAlgorithm = false;
 		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
 		m_Algorithms[CUT_MESH_ALGORITHM_INDEX].bShowDialog = false;
-
-		m_bSelectingFacet = false;
-		m_iSelectedFacet = GEO::NO_FACET;
+		ReleaseSelectingFacet(CUT_MESH_ALGORITHM_INDEX);
 	}
 }
 
@@ -496,6 +553,108 @@ void GioApplication::CloseBarycentricMappingAlgorithmDialog()
 	}
 }
 
+void GioApplication::DrawLSCMAlgorithmDialog()
+{
+	if (m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog)
+	{
+		m_iCurrentAlgorithm = LSCM_ALGORITHM_INDEX;
+
+		ImGui::Begin("LSCM", &m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+
+		static bool bFailure = false;
+		if (ImGui::Button("Run Algorithm"))
+		{
+			if (m_Algorithms[LSCM_ALGORITHM_INDEX].MeshAlgorithm->Execute(&mesh_))
+			{
+				m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm = true;
+				bFailure = false;
+			}
+			else
+			{
+				ImGui::OpenPopup("Error##LSCM");
+				bFailure = true;
+			}
+		}
+
+		if (bFailure)
+		{
+			if (ImGui::BeginPopupModal("Error##LSCM"), ImGuiWindowFlags_AlwaysAutoResize)
+			{
+				ImGui::Text("Some errors occurred. Input mesh must have 1 boundary and 0 genus!");
+				if (ImGui::Button("OK", ImVec2(120, 0)))
+				{
+					ImGui::CloseCurrentPopup();
+					bFailure = false;
+				}
+				ImGui::EndPopup();
+			}
+		}
+
+		if (m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm)
+		{
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Open Animation to visualize the algorithm");
+		}
+
+		ImGui::End();
+	}
+	else
+	{
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm = false;
+	}
+}
+
+void GioApplication::CloseLSCMAlgorithmDialog()
+{
+	if (m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog)
+	{
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bRunAlgorithm = false;
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bVisualizeAlgorithm = false;
+		m_Algorithms[LSCM_ALGORITHM_INDEX].bShowDialog = false;
+	}
+}
+
+void GioApplication::RequestSelectingFacet(size_t iAlgorithm, bool bSingleSelect)
+{
+	assert(m_iFacetSelectingAlgorithm == size_t(-1) || m_iFacetSelectingAlgorithm == iAlgorithm);
+	m_iFacetSelectingAlgorithm = iAlgorithm;
+	m_bDisplayAllSelectedFacets = !bSingleSelect;
+	m_bSelectingFacet = true;
+}
+
+void GioApplication::RequestSelectingVertex(size_t iAlgorithm, bool bSingleSelect)
+{
+	assert(m_iVertexSelectingAlgorithm == size_t(-1) || m_iVertexSelectingAlgorithm == iAlgorithm);
+	m_iVertexSelectingAlgorithm = iAlgorithm;
+	m_bDisplayAllSelectedVertices = !bSingleSelect;
+	m_bSelectingVertex = true;
+}
+
+void GioApplication::ReleaseSelectingFacet(size_t iAlgorithm)
+{
+	if (m_iFacetSelectingAlgorithm == iAlgorithm)
+	{
+		m_iSelectedFacet = GEO::NO_FACET;
+		m_iSelectedFacets.clear();
+		m_iFacetSelectingAlgorithm = size_t(-1);
+		m_bSelectingFacet = false;
+		m_bDisplayAllSelectedFacets = false;
+	}
+}
+
+void GioApplication::ReleaseSelectingVertex(size_t iAlgorithm)
+{
+	if (m_iFacetSelectingAlgorithm == iAlgorithm)
+	{
+		m_iSelectedVertex = GEO::NO_VERTEX;
+		m_iSelectedVertices.clear();
+		m_iVertexSelectingAlgorithm = size_t(-1);
+		m_bSelectingVertex = false;
+		m_bDisplayAllSelectedVertices = false;
+	}
+}
+
 GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent Event)
 {
 	double HitPoint[3];
@@ -514,6 +673,7 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 
 			if (SqDistance < 0.05 && Button == 0)
 			{
+				g_pApp->m_iSelectedFacets.insert(iFacet);
 				g_pApp->m_iSelectedFacet = iFacet;
 			}
 
@@ -523,6 +683,7 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 				{
 					g_pApp->m_iSelectedFacet = GEO::NO_FACET;
 				}
+				g_pApp->m_iSelectedFacets.erase(iFacet);
 			}
 		}
 
@@ -548,6 +709,7 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 
 			if (MinSqDistance < 1e-5 && Button == 0)
 			{
+				g_pApp->m_iSelectedVertices.insert(iMinDistanceVertex);
 				g_pApp->m_iSelectedVertex = iMinDistanceVertex;
 			}
 
@@ -557,6 +719,7 @@ GLboolean MouseCallbackFunc(float X, float Y, int Button, enum GlupViewerEvent E
 				{
 					g_pApp->m_iSelectedVertex = GEO::NO_VERTEX;
 				}
+				g_pApp->m_iSelectedVertices.erase(iMinDistanceVertex);
 			}
 		}
 	case GLUP_VIEWER_MOVE:

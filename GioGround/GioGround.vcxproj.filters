@@ -36,6 +36,9 @@
     <ClCompile Include="Algorithm\BarycentricMappingAlgorithm.cpp">
       <Filter>Source Files\Algorithm</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\LSCMAlgorithm.cpp">
+      <Filter>Source Files\Algorithm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MeshGenerator.hpp">
@@ -54,6 +57,9 @@
       <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\BarycentricMappingAlgorithm.hpp">
+      <Filter>Header Files\Algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\LSCMAlgorithm.hpp">
       <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
   </ItemGroup>

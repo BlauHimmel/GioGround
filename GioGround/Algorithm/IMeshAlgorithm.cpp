@@ -179,6 +179,31 @@ namespace MeshAlgorithm
 		}
 	}
 
+	float IMeshAlgorithm::SecondOrderDifference(In HalfedgeMeshWrapper * pHalfedgeMeshWrapper, In GEO::index_t iCorner) const
+	{
+		assert(pHalfedgeMeshWrapper != nullptr);
+		assert(pHalfedgeMeshWrapper->pMesh != nullptr);
+
+		GEO::Mesh * pMesh = pHalfedgeMeshWrapper->pMesh;
+		GEO::index_t iFacet1 = pHalfedgeMeshWrapper->Corner2Facet[iCorner];
+		GEO::index_t iFacet2 = pMesh->facet_corners.adjacent_facet(iCorner);
+
+		assert(iFacet2 != GEO::NO_FACET);
+
+		GEO::vec3 P0F1 = pMesh->vertices.point(pMesh->facets.vertex(iFacet1, 0));
+		GEO::vec3 P1F1 = pMesh->vertices.point(pMesh->facets.vertex(iFacet1, 1));
+		GEO::vec3 P2F1 = pMesh->vertices.point(pMesh->facets.vertex(iFacet1, 2));
+
+		GEO::vec3 P0F2 = pMesh->vertices.point(pMesh->facets.vertex(iFacet2, 0));
+		GEO::vec3 P1F2 = pMesh->vertices.point(pMesh->facets.vertex(iFacet2, 1));
+		GEO::vec3 P2F2 = pMesh->vertices.point(pMesh->facets.vertex(iFacet2, 2));
+
+		GEO::vec3 N1 = GEO::normalize(GEO::cross(P1F1 - P0F1, P2F1 - P0F1));
+		GEO::vec3 N2 = GEO::normalize(GEO::cross(P1F2 - P0F2, P2F2 - P0F2));
+
+		return std::acos(GEO::dot(N1, N2));
+	}
+
 	bool IMeshAlgorithm::Reset()
 	{
 		return true;
