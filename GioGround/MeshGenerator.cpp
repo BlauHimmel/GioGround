@@ -110,7 +110,7 @@ namespace MeshGenerator
 				double Z = Radius * std::cos(Theta);
 
 				double U = Phi / (2.0 * M_PI);
-				double V = Theta / M_PI;
+				double V = 1.0 - Theta / M_PI;
 
 				double * pV = pMesh->vertices.point_ptr(iVertex);
 				pV[0] = X;
